@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.profile/
+output/
+captures/
+logs/
+*.log
+
+# AI-инструкции, не часть утилиты
+CLAUDE.md
