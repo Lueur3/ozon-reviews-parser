@@ -43,18 +43,21 @@ def _find_widget(data: dict, prefix: str):
 
 
 def parse_price(data: dict) -> dict:
-    """Из webPrice: {price, card_price, original_price, is_available}."""
-    w = _find_widget(data, "webPrice")
-    if not isinstance(w, dict):
-        return {}
-    out = {
-        "price": w.get("price"),
-        "card_price": w.get("cardPrice"),
-        "is_available": w.get("isAvailable"),
-    }
-    if w.get("showOriginalPrice"):
-        out["original_price"] = w.get("originalPrice")
-    return {k: v for k, v in out.items() if v is not None}
+    """Из виджета webPrice-<id> (не webPriceDecreasedCompact и подобных)."""
+    for k, w in _widget_states(data).items():
+        if not (k.startswith("webPrice-") and isinstance(w, dict)):
+            continue
+        if not (w.get("price") or w.get("cardPrice")):
+            continue
+        out = {
+            "price": w.get("price"),
+            "card_price": w.get("cardPrice"),
+            "is_available": w.get("isAvailable"),
+        }
+        if w.get("showOriginalPrice"):
+            out["original_price"] = w.get("originalPrice")
+        return {kk: vv for kk, vv in out.items() if vv is not None}
+    return {}
 
 
 def _chars_from_webchar(w) -> dict:

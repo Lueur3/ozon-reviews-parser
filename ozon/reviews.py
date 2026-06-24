@@ -26,9 +26,10 @@ _VARIANT_MODE = "reviewsVariantMode=2"  # все варианты (фильтр 
 _DROP_HEADERS = {"host", "cookie", "content-length", "accept-encoding", "connection",
                  "user-agent", "origin", "referer"}
 
+_CAPTCHA_WAIT_ITERS = 75   # ~5 минут (по 4 с) ждём, пока пользователь решит капчу в окне
 _FETCH_JS = """async ({u, h}) => {
     const r = await fetch(u, {headers: h, credentials: 'include'});
-    return await r.text();
+    return {status: r.status, text: await r.text()};
 }"""
 
 _LOGDIR = config.BASE_DIR / "logs"
@@ -139,9 +140,27 @@ async def collect_reviews(page, url, period_days, all_variants, max_reviews, pag
              product_id, bool(state["headers"]), bool(state["next"]), len(raw_by_uuid))
 
     async def _fetch_json(param):
-        text = await page.evaluate(
-            _FETCH_JS, {"u": origin + _API_PATH + quote(param, safe=""), "h": headers})
-        return json.loads(text)
+        """Fetch JSON. При капче/блоке ждёт, пока пользователь решит её в окне, и повторяет."""
+        api = origin + _API_PATH + quote(param, safe="")
+        waited = False
+        for _ in range(_CAPTCHA_WAIT_ITERS):
+            try:
+                res = await page.evaluate(_FETCH_JS, {"u": api, "h": headers})
+                if isinstance(res, dict) and res.get("status") == 200:
+                    return json.loads(res["text"])
+            except Exception:
+                pass
+            if not waited:
+                print(">>> Капча/блокировка Ozon. Реши капчу в открытом окне Chrome — "
+                      "жду и продолжу сам...")
+                log.warning("captcha/block: жду решения пользователя в окне")
+                try:
+                    await page.goto(resolved_url, wait_until="domcontentloaded")
+                except Exception:
+                    pass
+                waited = True
+            await page.wait_for_timeout(4000)
+        raise RuntimeError("капча не решена за отведённое время")
 
     # цена с карточки + характеристики (на карточке краткие, на /features/ полные)
     ppath = urlparse(resolved_url).path
@@ -170,23 +189,16 @@ async def collect_reviews(page, url, period_days, all_variants, max_reviews, pag
             if len(raw_by_uuid) >= max_reviews * 3:
                 log.info("[%s] stop: лимит набран", label)
                 return "limit"
-            api = origin + _API_PATH + quote(param, safe="")
             try:
-                text = await page.evaluate(_FETCH_JS, {"u": api, "h": headers})
+                data = await _fetch_json(param)
             except Exception as e:
-                log.warning("[%s] evaluate/fetch упал: %r", label, e)
-                return "error"
-            try:
-                data = json.loads(text)
-            except Exception as e:
-                log.warning("[%s] json не разобрался (len=%d head=%r): %r",
-                            label, len(text), text[:160], e)
+                log.warning("[%s] fetch упал: %r", label, e)
                 return "error"
             added = absorb(data)
             pages += 1
             oldest = min((r.get("publishedAt") or 0) for r in raw_by_uuid.values()) if raw_by_uuid else 0
-            log.info("[%s] page %d: textlen=%d added=%d total=%d oldest=%s hasNext=%s",
-                     label, pages, len(text), added, len(raw_by_uuid),
+            log.info("[%s] page %d: added=%d total=%d oldest=%s hasNext=%s",
+                     label, pages, added, len(raw_by_uuid),
                      parse.ts_to_date(oldest), bool(data.get("nextPage")))
             if date_sorted and oldest and oldest < cutoff:
                 log.info("[%s] stop: достигнут период", label)
