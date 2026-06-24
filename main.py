@@ -8,7 +8,18 @@ import config
 def parse_args(argv=None):
     p = argparse.ArgumentParser(
         prog="ozon-reviews-parser",
-        description="Парсер отзывов товаров Ozon в JSON.",
+        description="Парсер отзывов товаров Ozon в JSON (один файл на товар: output/<id>.json).",
+        epilog=(
+            "Примеры:\n"
+            '  python main.py "https://ozon.ru/t/xxxxxxx"            все варианты, отзывы за год\n'
+            '  python main.py "<ссылка>" --this-variant              только вариант из ссылки\n'
+            '  python main.py "<ссылка>" --years 2 --max 1000        за 2 года, до 1000 отзывов\n'
+            "  python main.py -f urls.txt                            список ссылок из файла\n"
+            "\n"
+            "По умолчанию: все варианты, отзывы за 1 год, видимое окно Chrome.\n"
+            "Запускать с ВЫКЛЮЧЕННЫМ VPN. Диагностика глубины: scripts/audit.py."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     src = p.add_mutually_exclusive_group(required=True)
     src.add_argument("url", nargs="?", help="ссылка на товар Ozon")
