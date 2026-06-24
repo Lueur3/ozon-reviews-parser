@@ -138,11 +138,38 @@ async def collect_reviews(page, url, period_days, all_variants, max_reviews, pag
     log.info("bootstrap: id=%s headers=%s shelf_next=%s reviews=%d",
              product_id, bool(state["headers"]), bool(state["next"]), len(raw_by_uuid))
 
+    async def _fetch_json(param):
+        text = await page.evaluate(
+            _FETCH_JS, {"u": origin + _API_PATH + quote(param, safe=""), "h": headers})
+        return json.loads(text)
+
+    # цена с карточки + характеристики (на карточке краткие, на /features/ полные)
+    ppath = urlparse(resolved_url).path
+    if not ppath.endswith("/"):
+        ppath += "/"
+    price, characteristics = {}, {}
+    try:
+        pdata = await _fetch_json(ppath)
+        price = parse.parse_price(pdata)
+        characteristics = parse.parse_characteristics(pdata)
+    except Exception as e:
+        log.warning("карточка (цена/характеристики) не получена: %r", e)
+    try:
+        full = parse.parse_characteristics(await _fetch_json(ppath + "features/"))
+        if len(full) > len(characteristics):
+            characteristics = full
+    except Exception as e:
+        log.warning("features (полные характеристики) не получены: %r", e)
+    log.info("extras: price=%s характеристик=%d", bool(price), len(characteristics))
+
     async def run_cursor(param, label, date_sorted) -> str:
         """Гоняет курсор пагинации. Возвращает причину остановки: cutoff|end|limit|error."""
         pages = 0
         empty = 0
         while param and "review" in param.lower() and pages < _MAX_FETCH_PAGES:
+            if len(raw_by_uuid) >= max_reviews * 3:
+                log.info("[%s] stop: лимит набран", label)
+                return "limit"
             api = origin + _API_PATH + quote(param, safe="")
             try:
                 text = await page.evaluate(_FETCH_JS, {"u": api, "h": headers})
@@ -211,6 +238,8 @@ async def collect_reviews(page, url, period_days, all_variants, max_reviews, pag
         "resolved_url": resolved_url,
         "name": (products.get(str(product_id)) or {}).get("name", ""),
         "variant": parse.variant_map(product_id, products),
+        "price": price,
+        "characteristics": characteristics,
         "score": state["score"],
         "total": state["total"],
     }

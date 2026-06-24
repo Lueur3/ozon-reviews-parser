@@ -11,6 +11,10 @@ class Review:
     pros: str = ""       # достоинства
     cons: str = ""       # недостатки
     useful_count: int = 0
+    unuseful_count: int = 0
+    purchased: bool = False        # куплен ли товар на Ozon (isItemPurchased)
+    photos: list = field(default_factory=list)   # ссылки на фото
+    videos: list = field(default_factory=list)   # ссылки на видео
     variant: dict = field(default_factory=dict)  # {"Цвет": "чёрный", ...}
 
 
@@ -20,6 +24,7 @@ class Product:
     product_id: str
     name: str = ""
     variant: dict = field(default_factory=dict)          # вариант целевого товара
+    price: dict = field(default_factory=dict)            # {price, card_price, original_price, ...}
     characteristics: dict = field(default_factory=dict)
     reviews_period_days: int = 0
     reviews: list[Review] = field(default_factory=list)
@@ -30,6 +35,7 @@ class Product:
             "product_id": self.product_id,
             "name": self.name,
             "variant": self.variant,
+            "price": self.price,
             "characteristics": self.characteristics,
             "reviews_period_days": self.reviews_period_days,
             "reviews_count": len(self.reviews),
