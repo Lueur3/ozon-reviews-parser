@@ -143,9 +143,6 @@ async def collect_reviews(page, url, period_days, all_variants, max_reviews, pag
         pages = 0
         empty = 0
         while param and "review" in param.lower() and pages < _MAX_FETCH_PAGES:
-            if len(raw_by_uuid) >= max_reviews * 3:
-                log.info("[%s] stop: лимит набран", label)
-                return "limit"
             api = origin + _API_PATH + quote(param, safe="")
             try:
                 text = await page.evaluate(_FETCH_JS, {"u": api, "h": headers})
@@ -184,9 +181,9 @@ async def collect_reviews(page, url, period_days, all_variants, max_reviews, pag
         # лента не отдалась — откат на «полку» отзывов карточки
         log.info("лента /reviews/ дала мало — откат на полку карточки")
         await run_cursor(state["next"], "shelf", date_sorted=True)
-    elif status != "cutoff":
-        # лента упёрлась в стену анонима раньше, чем покрыла год — добираем сортировками
-        log.info("лента не покрыла период — добираю сортировками по оценке")
+    else:
+        # добор сортировками по оценке: каждая отдаёт свой срез (~+50% уникальных в окне),
+        # заодно гарантирует негатив и позитив. Анонимно лента ограничена ~990 на сортировку.
         for srt, label in (("score_asc", "low"), ("score_desc", "high")):
             await run_cursor(f"{rpath}?sort={srt}&{_VARIANT_MODE}", label, date_sorted=False)
 
