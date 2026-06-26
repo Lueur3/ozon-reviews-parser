@@ -110,6 +110,17 @@ py -m venv .venv
 
 `scripts/recon.py` — диагностический скрипт: сохраняет сырые ответы Ozon в `captures/` (полезно при поломке парсера после изменений на сайте).
 
+## Тесты
+
+Чистая логика парсинга и фильтрации покрыта офлайн-тестами (`tests/`, pytest) — сеть и браузер не нужны:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Сетевое ядро (`collect_reviews`) тестами не покрыто — проверяется только живым запуском с выключенным VPN.
+
 ## Глубина и лимиты (без аккаунта)
 
 Проверено `scripts/audit.py` на товаре с 5066 отзывами:
