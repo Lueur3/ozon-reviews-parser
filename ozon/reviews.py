@@ -58,6 +58,77 @@ def _is_empty(rev) -> bool:
     return not (rev.text.strip() or rev.pros.strip() or rev.cons.strip())
 
 
+async def _collect_extras(fetch, ppath):
+    """Цена и характеристики: с карточки (краткие) и /features/ (полные). → (price, characteristics)."""
+    price, characteristics = {}, {}
+    try:
+        pdata = await fetch(ppath)
+        price = parse.parse_price(pdata)
+        characteristics = parse.parse_characteristics(pdata)
+    except Exception as e:
+        log.warning("карточка (цена/характеристики) не получена: %r", e)
+    try:
+        full = parse.parse_characteristics(await fetch(ppath + "features/"))
+        if len(full) > len(characteristics):
+            characteristics = full
+    except Exception as e:
+        log.warning("features (полные характеристики) не получены: %r", e)
+    return price, characteristics
+
+
+async def _collect_questions(fetch, ppath, max_pages=12):
+    """Вопросы с ответами (сорт «сначала с ответом»; анонимно ~90 вопросов).
+
+    У вопросов с пометкой «Ещё N ответ» догружаем все ответы со страницы вопроса.
+    """
+    questions = []
+    seen_q = set()
+    for page_n in range(1, max_pages + 1):
+        try:
+            qdata = await fetch(f"{ppath}questions/?qsort=has_answers_desc&page={page_n}")
+        except Exception as e:
+            log.warning("вопросы: страница %d не получена: %r", page_n, e)
+            break
+        new = [q for q in parse.parse_questions(qdata, answered_only=True)
+               if q["text"] not in seen_q]
+        if not new:
+            break
+        for q in new:
+            seen_q.add(q["text"])
+            # вопросы с пометкой «Ещё N ответ» — догружаем все ответы со страницы вопроса
+            if q.get("_has_more") and q.get("_id"):
+                try:
+                    full = parse.parse_questions(
+                        await fetch(f"{ppath}question/{q['_id']}/"), answered_only=False)
+                    if full and len(full[0]["answers"]) > len(q["answers"]):
+                        q["answers"] = full[0]["answers"]
+                except Exception as e:
+                    log.warning("вопрос %s: доп.ответы не получены: %r", q.get("_id"), e)
+            q.pop("_id", None)
+            q.pop("_has_more", None)
+            questions.append(q)
+    return questions
+
+
+def _filter_reviews(raw_by_uuid, cutoff, all_variants, pid_int, products, max_reviews):
+    """Фильтр: период, вариант, пустые отзывы (дедуп уже по uuid). → (list[Review], skipped_empty)."""
+    out = []
+    skipped_empty = 0
+    for raw in raw_by_uuid.values():
+        ts = raw.get("publishedAt") or raw.get("createdAt") or 0
+        if ts < cutoff:
+            continue
+        if not all_variants and pid_int is not None and raw.get("itemId") != pid_int:
+            continue
+        rev = parse.to_review(raw, products)
+        if _is_empty(rev):
+            skipped_empty += 1
+            continue
+        out.append(rev)
+    out.sort(key=lambda r: r.date, reverse=True)
+    return out[:max_reviews], skipped_empty
+
+
 async def collect_reviews(page, url, period_days, all_variants, max_reviews, page_delay):
     """Возвращает (list[Review], meta). meta: product_id, resolved_url, name, variant, score, total."""
     cutoff = parse.cutoff_ts(period_days)
@@ -162,52 +233,14 @@ async def collect_reviews(page, url, period_days, all_variants, max_reviews, pag
             await page.wait_for_timeout(4000)
         raise RuntimeError("капча не решена за отведённое время")
 
-    # цена с карточки + характеристики (на карточке краткие, на /features/ полные)
+    # цена и характеристики (на карточке краткие, на /features/ полные)
     ppath = urlparse(resolved_url).path
     if not ppath.endswith("/"):
         ppath += "/"
-    price, characteristics = {}, {}
-    try:
-        pdata = await _fetch_json(ppath)
-        price = parse.parse_price(pdata)
-        characteristics = parse.parse_characteristics(pdata)
-    except Exception as e:
-        log.warning("карточка (цена/характеристики) не получена: %r", e)
-    try:
-        full = parse.parse_characteristics(await _fetch_json(ppath + "features/"))
-        if len(full) > len(characteristics):
-            characteristics = full
-    except Exception as e:
-        log.warning("features (полные характеристики) не получены: %r", e)
+    price, characteristics = await _collect_extras(_fetch_json, ppath)
     log.info("extras: price=%s характеристик=%d", bool(price), len(characteristics))
 
-    # вопросы с ответами (сорт «сначала с ответом»; анонимно ~90 вопросов)
-    questions = []
-    seen_q = set()
-    for page_n in range(1, 13):
-        try:
-            qdata = await _fetch_json(f"{ppath}questions/?qsort=has_answers_desc&page={page_n}")
-        except Exception as e:
-            log.warning("вопросы: страница %d не получена: %r", page_n, e)
-            break
-        new = [q for q in parse.parse_questions(qdata, answered_only=True)
-               if q["text"] not in seen_q]
-        if not new:
-            break
-        for q in new:
-            seen_q.add(q["text"])
-            # вопросы с пометкой «Ещё N ответ» — догружаем все ответы со страницы вопроса
-            if q.get("_has_more") and q.get("_id"):
-                try:
-                    full = parse.parse_questions(
-                        await _fetch_json(f"{ppath}question/{q['_id']}/"), answered_only=False)
-                    if full and len(full[0]["answers"]) > len(q["answers"]):
-                        q["answers"] = full[0]["answers"]
-                except Exception as e:
-                    log.warning("вопрос %s: доп.ответы не получены: %r", q.get("_id"), e)
-            q.pop("_id", None)
-            q.pop("_has_more", None)
-            questions.append(q)
+    questions = await _collect_questions(_fetch_json, ppath)
     log.info("вопросов с ответами: %d", len(questions))
 
     async def run_cursor(param, label, date_sorted) -> str:
@@ -225,7 +258,9 @@ async def collect_reviews(page, url, period_days, all_variants, max_reviews, pag
                 return "error"
             added = absorb(data)
             pages += 1
-            oldest = min((r.get("publishedAt") or 0) for r in raw_by_uuid.values()) if raw_by_uuid else 0
+            # тот же расчёт даты, что и в фильтре; нули (нет даты) игнорируем, чтобы не остановиться раньше времени
+            stamps = [r.get("publishedAt") or r.get("createdAt") or 0 for r in raw_by_uuid.values()]
+            oldest = min((t for t in stamps if t), default=0)
             log.info("[%s] page %d: added=%d total=%d oldest=%s hasNext=%s",
                      label, pages, added, len(raw_by_uuid),
                      parse.ts_to_date(oldest), bool(data.get("nextPage")))
@@ -255,22 +290,8 @@ async def collect_reviews(page, url, period_days, all_variants, max_reviews, pag
         for srt, label in (("score_asc", "low"), ("score_desc", "high")):
             await run_cursor(f"{rpath}?sort={srt}&{_VARIANT_MODE}", label, date_sorted=False)
 
-    # фильтрация: период, вариант, пустые отзывы (дедуп уже по uuid)
-    out = []
-    skipped_empty = 0
-    for raw in raw_by_uuid.values():
-        ts = raw.get("publishedAt") or raw.get("createdAt") or 0
-        if ts < cutoff:
-            continue
-        if not all_variants and pid_int is not None and raw.get("itemId") != pid_int:
-            continue
-        rev = parse.to_review(raw, products)
-        if _is_empty(rev):
-            skipped_empty += 1
-            continue
-        out.append(rev)
-    out.sort(key=lambda r: r.date, reverse=True)
-    out = out[:max_reviews]
+    out, skipped_empty = _filter_reviews(
+        raw_by_uuid, cutoff, all_variants, pid_int, products, max_reviews)
     log.info("итог: собрано=%d, пустых пропущено=%d, после фильтров=%d (all_variants=%s)",
              len(raw_by_uuid), skipped_empty, len(out), all_variants)
 
