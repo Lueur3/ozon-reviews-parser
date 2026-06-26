@@ -138,6 +138,8 @@ def parse_questions(data: dict, answered_only: bool = True) -> list:
         if answered_only and not ans:
             continue
         out.append({
+            "_id": str(qid),
+            "_has_more": bool(q.get("getAnswersAction")),
             "author": (q.get("author") or {}).get("name", ""),
             "text": q.get("content", "") or "",
             "date": q.get("createdAt", "") or "",

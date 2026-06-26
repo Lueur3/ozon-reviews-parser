@@ -196,7 +196,18 @@ async def collect_reviews(page, url, period_days, all_variants, max_reviews, pag
             break
         for q in new:
             seen_q.add(q["text"])
-        questions.extend(new)
+            # вопросы с пометкой «Ещё N ответ» — догружаем все ответы со страницы вопроса
+            if q.get("_has_more") and q.get("_id"):
+                try:
+                    full = parse.parse_questions(
+                        await _fetch_json(f"{ppath}question/{q['_id']}/"), answered_only=False)
+                    if full and len(full[0]["answers"]) > len(q["answers"]):
+                        q["answers"] = full[0]["answers"]
+                except Exception as e:
+                    log.warning("вопрос %s: доп.ответы не получены: %r", q.get("_id"), e)
+            q.pop("_id", None)
+            q.pop("_has_more", None)
+            questions.append(q)
     log.info("вопросов с ответами: %d", len(questions))
 
     async def run_cursor(param, label, date_sorted) -> str:
