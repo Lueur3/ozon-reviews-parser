@@ -26,6 +26,7 @@ class Product:
     variant: dict = field(default_factory=dict)          # вариант целевого товара
     price: dict = field(default_factory=dict)            # {price, card_price, original_price, ...}
     characteristics: dict = field(default_factory=dict)
+    questions: list = field(default_factory=list)        # вопросы с ответами
     reviews_period_days: int = 0
     reviews: list[Review] = field(default_factory=list)
 
@@ -37,6 +38,8 @@ class Product:
             "variant": self.variant,
             "price": self.price,
             "characteristics": self.characteristics,
+            "questions_count": len(self.questions),
+            "questions": self.questions,
             "reviews_period_days": self.reviews_period_days,
             "reviews_count": len(self.reviews),
             "reviews": [asdict(r) for r in self.reviews],

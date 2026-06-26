@@ -181,6 +181,24 @@ async def collect_reviews(page, url, period_days, all_variants, max_reviews, pag
         log.warning("features (полные характеристики) не получены: %r", e)
     log.info("extras: price=%s характеристик=%d", bool(price), len(characteristics))
 
+    # вопросы с ответами (сорт «сначала с ответом»; анонимно ~90 вопросов)
+    questions = []
+    seen_q = set()
+    for page_n in range(1, 13):
+        try:
+            qdata = await _fetch_json(f"{ppath}questions/?qsort=has_answers_desc&page={page_n}")
+        except Exception as e:
+            log.warning("вопросы: страница %d не получена: %r", page_n, e)
+            break
+        new = [q for q in parse.parse_questions(qdata, answered_only=True)
+               if q["text"] not in seen_q]
+        if not new:
+            break
+        for q in new:
+            seen_q.add(q["text"])
+        questions.extend(new)
+    log.info("вопросов с ответами: %d", len(questions))
+
     async def run_cursor(param, label, date_sorted) -> str:
         """Гоняет курсор пагинации. Возвращает причину остановки: cutoff|end|limit|error."""
         pages = 0
@@ -252,6 +270,7 @@ async def collect_reviews(page, url, period_days, all_variants, max_reviews, pag
         "variant": parse.variant_map(product_id, products),
         "price": price,
         "characteristics": characteristics,
+        "questions": questions,
         "score": state["score"],
         "total": state["total"],
     }

@@ -95,6 +95,57 @@ def parse_characteristics(data: dict) -> dict:
     return best
 
 
+def _question_widget(data: dict):
+    for k, w in _widget_states(data).items():
+        if k.startswith("webListQuestions") and isinstance(w, dict):
+            return w
+    st = data.get("state")
+    if isinstance(st, str):
+        try:
+            st = json.loads(st)
+        except Exception:
+            st = None
+    if isinstance(st, dict) and "questions" in st:
+        return st
+    return None
+
+
+def parse_questions(data: dict, answered_only: bool = True) -> list:
+    """Список вопросов с ответами: [{author, text, date, answers:[{author,text,date,is_best}]}]."""
+    w = _question_widget(data)
+    if not w:
+        return []
+    questions = w.get("questions") or {}
+    answers = w.get("answers") or {}
+    qa = w.get("questionAnswers") or {}
+    order = w.get("questionsIds") or list(questions.keys())
+    out = []
+    for qid in order:
+        q = questions.get(str(qid)) or questions.get(qid)
+        if not isinstance(q, dict):
+            continue
+        ans = []
+        for aid in (qa.get(str(qid)) or qa.get(qid) or []):
+            a = answers.get(str(aid)) or answers.get(aid)
+            if not isinstance(a, dict):
+                continue
+            ans.append({
+                "author": (a.get("author") or {}).get("name", ""),
+                "text": a.get("content", "") or "",
+                "date": a.get("createdAt", "") or "",
+                "is_best": bool(a.get("isTheBest")),
+            })
+        if answered_only and not ans:
+            continue
+        out.append({
+            "author": (q.get("author") or {}).get("name", ""),
+            "text": q.get("content", "") or "",
+            "date": q.get("createdAt", "") or "",
+            "answers": ans,
+        })
+    return out
+
+
 def variant_map(item_id, products: dict) -> dict:
     p = products.get(str(item_id)) or {}
     return {v.get("name", ""): v.get("value", "") for v in (p.get("variants") or [])}

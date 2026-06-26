@@ -38,11 +38,13 @@ async def _run_async(urls, period_days, all_variants, headless, max_reviews):
                 variant=meta.get("variant", {}),
                 price=meta.get("price", {}),
                 characteristics=meta.get("characteristics", {}),
+                questions=meta.get("questions", []),
                 reviews_period_days=period_days,
                 reviews=reviews,
             )
             path = save_product(product, config.OUTPUT_DIR)
             print(f"    сохранено: {path} | отзывов: {len(reviews)} | "
+                  f"вопросов: {len(meta.get('questions', []))} | "
                   f"оценка: {meta.get('score')} | всего на товаре: {meta.get('total')} | "
                   f"время: {elapsed:.1f} с")
             if not reviews and not all_variants:
