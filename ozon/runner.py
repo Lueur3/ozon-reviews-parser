@@ -5,8 +5,8 @@ import time
 
 import config
 from .browser import launch_browser
+from .collector import ReviewCollector
 from .models import Product
-from .reviews import collect_reviews
 from .storage import save_product
 
 
@@ -18,8 +18,10 @@ async def _run_async(urls, period_days, all_variants, headless, max_reviews):
             print(f"[{i + 1}/{len(urls)}] {url} ({mode}) — собираю отзывы...")
             t0 = time.perf_counter()
             try:
-                reviews, meta = await collect_reviews(
-                    page, url, period_days, all_variants, max_reviews, config.PAGE_DELAY)
+                collector = ReviewCollector(
+                    page, url, period_days=period_days, all_variants=all_variants,
+                    max_reviews=max_reviews, page_delay=config.PAGE_DELAY)
+                reviews, meta = await collector.collect()
             except Exception as e:
                 print(f"    ошибка сбора: {e!r}")
                 continue
