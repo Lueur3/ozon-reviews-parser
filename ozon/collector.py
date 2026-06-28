@@ -82,6 +82,7 @@ class ReviewCollector:
         self.shelf_next = None             # курсор «полки» отзывов карточки (фолбэк)
         self.headers = None                # заголовки внутреннего API из сессии
         self._pending: list = []           # незавершённые обработчики response
+        self._chrono_uuids: set = set()    # uuid из хронологической ленты (для непредвзятой статистики)
 
         # реквизиты товара (заполняются в _bootstrap по resolved_url)
         self.resolved_url = ""
@@ -314,11 +315,14 @@ class ReviewCollector:
         before_deep = len(self.reviews_by_uuid)
         deep = f"{self.rpath}?sort=published_at_desc&{_VARIANT_MODE}"
         await self._run_cursor(deep, "reviews", date_sorted=True)
+        # непредвзятая хронологическая выборка для статистики (до доборов по оценке)
+        self._chrono_uuids = set(self.reviews_by_uuid)
 
         if len(self.reviews_by_uuid) - before_deep <= 3 and self.shelf_next:
             # лента не отдалась — откат на «полку» отзывов карточки
             log.info("лента /reviews/ дала мало — откат на полку карточки")
             await self._run_cursor(self.shelf_next, "shelf", date_sorted=True)
+            self._chrono_uuids = set(self.reviews_by_uuid)  # полка тоже хронологическая
         else:
             # добор сортировками по оценке: каждая отдаёт свой срез (~+50% уникальных в окне),
             # заодно гарантирует негатив и позитив. Анонимно лента ограничена ~990 на сортировку.
@@ -347,9 +351,9 @@ class ReviewCollector:
         return out[:self.max_reviews], skipped_empty
 
     def _stats(self) -> dict:
-        """Сводная статистика оценок по сырым собранным отзывам (overall — из Ozon)."""
-        return compute_stats(self.reviews_by_uuid.values(), self.score, self.total,
-                             datetime.now(parse._TZ))
+        """Статистика по непредвзятой хронологической выборке (без доборов по оценке; overall — из Ozon)."""
+        chrono = [self.reviews_by_uuid[u] for u in self._chrono_uuids]
+        return compute_stats(chrono, self.score, self.total, datetime.now(parse._TZ))
 
     def _meta(self, price: dict, characteristics: dict, questions: list, stats: dict) -> dict:
         """Сводка meta для runner."""

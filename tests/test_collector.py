@@ -87,6 +87,21 @@ def test_meta_shape():
                          "price", "stats", "characteristics", "questions", "score", "total"}
 
 
+def test_stats_only_over_chrono_subset():
+    import time
+    now_ts = int(time.time())
+    raws = {"a": _raw("a", now_ts - 5 * 86400),
+            "b": _raw("b", now_ts - 6 * 86400),
+            "c": _raw("c", now_ts - 7 * 86400)}
+    c = _collector(raws)
+    c._chrono_uuids = {"a", "b"}  # 'c' добран сортировкой по оценке — в статистику не идёт
+    c.score, c.total = 4.9, 500
+    s = c._stats()
+    assert s["collected"]["count"] == 2
+    assert s["windows"]["30d"]["count"] == 2
+    assert s["overall"]["total"] == 500
+
+
 def test_is_empty():
     assert _is_empty(Review(author="x", rating=5, date="2026-01-01", text="  "))
     assert not _is_empty(Review(author="x", rating=5, date="2026-01-01", pros="плюс"))
