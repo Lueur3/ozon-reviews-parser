@@ -21,7 +21,7 @@ def parse_args(argv=None):
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    src = p.add_mutually_exclusive_group(required=True)
+    src = p.add_mutually_exclusive_group(required=False)
     src.add_argument("url", nargs="?", help="ссылка на товар Ozon")
     src.add_argument("-f", "--file",
                      help="файл со списком ссылок (по одной в строке, # — комментарий)")
@@ -34,6 +34,8 @@ def parse_args(argv=None):
                    help="headless-режим без окна (на Ozon обычно блокируется; по умолчанию видимое окно)")
     p.add_argument("--max", type=int, default=config.MAX_REVIEWS_PER_PRODUCT,
                    help=f"максимум отзывов на товар (по умолчанию {config.MAX_REVIEWS_PER_PRODUCT})")
+    p.add_argument("--doctor", action="store_true",
+                   help="самопроверка парсинга (эталонный товар или переданная ссылка)")
     return p.parse_args(argv)
 
 
@@ -46,6 +48,13 @@ def load_urls(args) -> list[str]:
 
 def main(argv=None):
     args = parse_args(argv)
+
+    if args.doctor:
+        from ozon.doctor import run_doctor
+        raise SystemExit(run_doctor(args.url or config.DOCTOR_URL))
+
+    if not (args.url or args.file):
+        raise SystemExit("Нужна ссылка на товар, -f файл или --doctor.")
     urls = load_urls(args)
     if not urls:
         raise SystemExit("Не передано ни одной ссылки.")

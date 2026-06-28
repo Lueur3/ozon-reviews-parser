@@ -1,0 +1,584 @@
+{
+  "widgetStates": {
+    "webCharacteristics-903456-default-1": {
+      "characteristics": [
+        {
+          "short": [
+            {
+              "key": "Type",
+              "name": "Тип",
+              "values": [
+                {
+                  "text": "Мобильный телефон",
+                  "key": "Type_0"
+                }
+              ]
+            },
+            {
+              "key": "RSDiagonalStr",
+              "name": "Диагональ экрана, дюймы",
+              "values": [
+                {
+                  "text": "2.8",
+                  "key": "RSDiagonalStr_0"
+                }
+              ],
+              "hintText": "Данный параметр характеризует размер экрана и выражается в дюймах (1 дюйм = 2,54 см)"
+            },
+            {
+              "key": "Resolution",
+              "name": "Разрешение экрана",
+              "values": [
+                {
+                  "text": "320x240",
+                  "key": "Resolution_0"
+                }
+              ]
+            },
+            {
+              "key": "NumSIM",
+              "name": "Число физических SIM-карт",
+              "values": [
+                {
+                  "text": "2",
+                  "link": "/category/telefony-na-2-sim-karty/",
+                  "key": "NumSIM_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1SJ7Ni1pzcW7D2Rfl5nVnA8ERjXy"
+                    }
+                  }
+                }
+              ],
+              "hintText": "Большинство современных устройств рассчитаны на несколько сим-карт – пользователь может установить сразу две сим-карты, например, разных операторов. Обычно это делается для того, чтобы разделить рабочие и личные контакты или для сохранения старого номера при переходе к новому сотовому оператору."
+            },
+            {
+              "key": "MobilePhoneConstr",
+              "name": "Конструктивные особенности телефона",
+              "values": [
+                {
+                  "text": "Фонарик",
+                  "link": "/category/mobilnye-telefony-s-fonarikom/",
+                  "key": "MobilePhoneConstr_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1P0h6Uui7Ye4-iSIpNf_Vdv5PAV2"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "webCharacteristics-939986-default-1": {
+      "characteristics": [
+        {
+          "short": [
+            {
+              "key": "Sku",
+              "name": "Артикул",
+              "values": [
+                {
+                  "text": "2608235411",
+                  "key": "Sku",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1QYt2XiWpRaE2SrHkV1n3tajdpdR"
+                    }
+                  }
+                }
+              ],
+              "copyText": "2608235411"
+            },
+            {
+              "key": "Type",
+              "name": "Тип",
+              "values": [
+                {
+                  "text": "Мобильный телефон",
+                  "key": "Type_0"
+                }
+              ]
+            },
+            {
+              "key": "RSDiagonalStr",
+              "name": "Диагональ экрана, дюймы",
+              "values": [
+                {
+                  "text": "2.8",
+                  "key": "RSDiagonalStr_0"
+                }
+              ],
+              "hintText": "Данный параметр характеризует размер экрана и выражается в дюймах (1 дюйм = 2,54 см)"
+            },
+            {
+              "key": "Resolution",
+              "name": "Разрешение экрана",
+              "values": [
+                {
+                  "text": "320x240",
+                  "key": "Resolution_0"
+                }
+              ]
+            },
+            {
+              "key": "NumSIM",
+              "name": "Число физических SIM-карт",
+              "values": [
+                {
+                  "text": "2",
+                  "link": "/category/telefony-na-2-sim-karty/",
+                  "key": "NumSIM_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1SJ7Ni1pzcW7D2Rfl5nVnA8ERjXy"
+                    }
+                  }
+                }
+              ],
+              "hintText": "Большинство современных устройств рассчитаны на несколько сим-карт – пользователь может установить с..."
+            },
+            {
+              "key": "MobilePhoneConstr",
+              "name": "Конструктивные особенности телефона",
+              "values": [
+                {
+                  "text": "Фонарик",
+                  "link": "/category/mobilnye-telefony-s-fonarikom/",
+                  "key": "MobilePhoneConstr_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1P0h6Uui7Ye4-iSIpNf_Vdv5PAV2"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "key": "WirelessTechShort",
+              "name": "Беспроводные интерфейсы",
+              "values": [
+                {
+                  "text": "Bluetooth",
+                  "link": "/category/mobilnye-telefony-s-bluetooth/",
+                  "key": "WirelessTechShort_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1ZwaXEoYSJAE9vrVFwDxS8lPirEi"
+                    }
+                  }
+                }
+              ],
+              "hintText": "Беспроводные интерфейсы значительно расширяют функциональность устройства. Чип NFC дает возможность ..."
+            },
+            {
+              "key": "RadioFunc",
+              "name": "Функции радио",
+              "values": [
+                {
+                  "text": "FM-радио",
+                  "key": "RadioFunc_0"
+                }
+              ]
+            },
+            {
+              "key": "Capacity",
+              "name": "Емкость аккумулятора, мАч",
+              "values": [
+                {
+                  "text": "1000",
+                  "key": "Capacity_0"
+                }
+              ]
+            },
+            {
+              "key": "MemoryCardSlot",
+              "name": "Слот для карты памяти",
+              "values": [
+                {
+                  "text": "Да",
+                  "key": "MemoryCardSlot_0"
+                }
+              ],
+              "hintText": "Слот для карты памяти позволяет использовать в устройстве дополнительную память – вставить в гаджет ..."
+            },
+            {
+              "key": "BodyMaterialShort",
+              "name": "Основной материал корпуса",
+              "values": [
+                {
+                  "text": "Пластик",
+                  "key": "BodyMaterialShort_0"
+                }
+              ]
+            },
+            {
+              "key": "LCDTechnology",
+              "name": "Технология матрицы",
+              "values": [
+                {
+                  "text": "TFT",
+                  "key": "LCDTechnology_0"
+                }
+              ]
+            },
+            {
+              "key": "MobileStandartShort",
+              "name": "Стандарты связи",
+              "values": [
+                {
+                  "text": "2G",
+                  "key": "MobileStandartShort_0"
+                }
+              ],
+              "hintText": "Буква G в аббревиатуре стандарта связи означает generation, то есть поколение. Чем выше цифра, тем н..."
+            },
+            {
+              "key": "Color",
+              "name": "Цвет",
+              "values": [
+                {
+                  "text": "Белый",
+                  "link": "/category/belye-mobilnye-telefony/",
+                  "key": "Color_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1POTH-xXHmyGK7Isk_frSa6wEHJu"
+                    }
+                  }
+                },
+                {
+                  "text": "синий",
+                  "link": "/category/sinie-mobilnye-telefony/",
+                  "key": "Color_1",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1RjPhnIYIcyj-mc3kBBWtv1b7nzA"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "key": "ViewImage",
+              "name": "Цветность дисплея",
+              "values": [
+                {
+                  "text": "Цветной",
+                  "link": "/category/mobilnye-telefony-s-tsvetnym-displeem/",
+                  "key": "ViewImage_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1M8DfdzmTyNSnW8ejdrQMowe8uQn"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "key": "RAMEmbeddedMB",
+              "name": "Встроенная память,  МБ",
+              "values": [
+                {
+                  "text": "32",
+                  "key": "RAMEmbeddedMB_0"
+                }
+              ]
+            },
+            {
+              "key": "GSMDiam",
+              "name": "Диапазон GSM",
+              "values": [
+                {
+                  "text": "GSM 850/900/1800/1900",
+                  "key": "GSMDiam_0"
+                }
+              ]
+            },
+            {
+              "key": "InternetAccessIs",
+              "name": "Доступ в интернет",
+              "values": [
+                {
+                  "text": "Нет",
+                  "link": "/category/mobilnye-telefony-bez-interneta/",
+                  "key": "InternetAccessIs_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1OUMdOfpPEqJUofC0YsOo-BhPXIj"
+                    }
+                  }
+                }
+              ],
+              "hintText": "Технология доступа в интернет делает мобильный телефон многофункциональным устройством, с помощью ко..."
+            },
+            {
+              "key": "FormFactors",
+              "name": "Форм-фактор SIM",
+              "values": [
+                {
+                  "text": "Mini-SIM",
+                  "key": "FormFactors_0"
+                }
+              ],
+              "hintText": "Mini-SIM и Micro-SIM считаются устаревшими форматами сим-карты и используются лишь в некоторых линей..."
+            },
+            {
+              "key": "DualSIMMode",
+              "name": "Работа нескольких SIM-карт",
+              "values": [
+                {
+                  "text": "Одновременная",
+                  "link": "/category/mobilnye-telefony-s-podderzhkoy-odnovremennoy-raboty-neskolkih-sim-kart/",
+                  "key": "DualSIMMode_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1VbL6yKMuVUP-wvH4FAbrgJIDP-N"
+                    }
+                  }
+                }
+              ],
+              "hintText": "Режим одновременной работы двух SIM-карт доступен в телефонах с двумя независимыми радиомодулями, чт..."
+            },
+            {
+              "key": "BluetoothVersion",
+              "name": "Модуль связи Bluetooth",
+              "values": [
+                {
+                  "text": "2.1+EDR",
+                  "key": "BluetoothVersion_0"
+                }
+              ]
+            },
+            {
+              "key": "NavigationOS",
+              "name": "Навигация",
+              "values": [
+                {
+                  "text": "Нет",
+                  "link": "/category/mobilnye-telefony-bez-navigatora/",
+                  "key": "NavigationOS_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1MZN9-UJBrvMtOXosJZ8vDtqJFyf"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "key": "CallAlert",
+              "name": "Оповещение о вызове",
+              "values": [
+                {
+                  "text": "MP3",
+                  "key": "CallAlert_0"
+                },
+                {
+                  "text": "Вибрация",
+                  "link": "/category/mobilnye-telefony-s-vibratsiey/",
+                  "key": "CallAlert_1",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1MzF6jdDRRxuKc8SCGkAKjgQLu53"
+                    }
+                  }
+                }
+              ],
+              "hintText": "MP3 – цифровой формат, сохраняющий и воспроизводящий аудиофайлы. В мобильном телефоне этот формат пр..."
+            },
+            {
+              "key": "Organizer",
+              "name": "Органайзер",
+              "values": [
+                {
+                  "text": "Будильник",
+                  "link": "/category/mobilnye-telefony-s-budilnikom/",
+                  "key": "Organizer_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1W1tkxUPxhFUFSAgW6w8-wg6SC7h"
+                    }
+                  }
+                },
+                {
+                  "text": "Часы",
+                  "link": "/category/mobilnye-telefony-s-chasami/",
+                  "key": "Organizer_1",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1SKehIiUrPe1O5xcGtK7p93ZKCR-"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "key": "InterfaceShort",
+              "name": "Интерфейсы",
+              "values": [
+                {
+                  "text": "USB Type-C",
+                  "key": "InterfaceShort_0"
+                }
+              ]
+            },
+            {
+              "key": "CardType",
+              "name": "Тип карты памяти",
+              "values": [
+                {
+                  "text": "microSD",
+                  "link": "/category/mobilnye-telefony-s-podderzhkoy-microsd/",
+                  "key": "CardType_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1-NhGzxZF3qNE5Vmb8mCqw15-_EP"
+                    }
+                  }
+                }
+              ],
+              "hintText": "Устройство может поддерживать один или несколько форматов карт памяти в зависимости от имеющихся сло..."
+            },
+            {
+              "key": "MaxCardCapacity",
+              "name": "Макс. объем карты памяти,  ГБ",
+              "values": [
+                {
+                  "text": "32",
+                  "key": "MaxCardCapacity_0"
+                }
+              ]
+            },
+            {
+              "key": "CameraPhoneIs",
+              "name": "Встроенная камера",
+              "values": [
+                {
+                  "text": "Нет",
+                  "link": "/category/mobilnye-telefony-bez-vstroennoy-kamery/",
+                  "key": "CameraPhoneIs_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1P_5JsSYM0can2_VHhda06gCJV52"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "key": "MobilePhoneFunc",
+              "name": "Функциональные особенности телефона",
+              "values": [
+                {
+                  "text": "Диктофон",
+                  "link": "/category/mobilnye-telefony-s-diktofonom/",
+                  "key": "MobilePhoneFunc_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1SIsoRnSDDAu6BSCT7zBIj7Gz-zi"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "key": "MobilePhoneForm",
+              "name": "Тип корпуса",
+              "values": [
+                {
+                  "text": "Моноблок",
+                  "link": "/category/mobilnye-telefony-monobloki/",
+                  "key": "MobilePhoneForm_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1OxMdOOaPllIN0Ec1E3MlE8TCoJs"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "key": "TalkTime",
+              "name": "Время работы в режиме разговора, ч",
+              "values": [
+                {
+                  "text": "4",
+                  "key": "TalkTime_0"
+                }
+              ]
+            },
+            {
+              "key": "Weight",
+              "name": "Вес товара, г",
+              "values": [
+                {
+                  "text": "92",
+                  "key": "Weight_0"
+                }
+              ]
+            },
+            {
+              "key": "WarrantyList",
+              "name": "Гарантия",
+              "values": [
+                {
+                  "text": "1 год",
+                  "key": "WarrantyList_0"
+                }
+              ]
+            },
+            {
+              "key": "Lifetime",
+              "name": "Срок службы, лет",
+              "values": [
+                {
+                  "text": "2",
+                  "key": "Lifetime_0"
+                }
+              ]
+            },
+            {
+              "key": "Country",
+              "name": "Страна-изготовитель",
+              "values": [
+                {
+                  "text": "Китай",
+                  "link": "/category/mobilnye-telefony-kitay/",
+                  "key": "Country_0",
+                  "trackingInfo": {
+                    "click": {
+                      "actionType": "click",
+                      "key": "1vid1_d-TFkzlZ0glL7HJmKFsjN-oOz0"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

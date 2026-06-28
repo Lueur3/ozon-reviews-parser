@@ -1,0 +1,176 @@
+{
+  "widgetStates": {
+    "webListQuestions-397756-default-1": {
+      "questions": {
+        "189309660": {
+          "author": {
+            "name": "Пользователь",
+            "avatarUrl": "https://cdn1.ozonusercontent.com/s3/fs-my-account-avatar/b06jkYcxRbemw4_l_nahoQ.jpg",
+            "pageUrl": "/context/client_opinion/ClientGuid/8e118ae7-6b01-45a4-911c-c010269e145a/",
+            "partnerCaption": ""
+          },
+          "getAnswersAction": {
+            "type": "getAnswers",
+            "loadMoreText": "Еще 1 ответ",
+            "action": "getAnswers?keepAnswerIds=189575263&questionId=189309660",
+            "direct": true
+          },
+          "usefulness": {
+            "type": "icon",
+            "actions": [
+              {
+                "type": "like",
+                "action": "likeQuestion?questionId=189309660",
+                "val": 1,
+                "isSelected": false,
+                "isAvailable": false,
+                "direct": true
+              }
+            ]
+          },
+          "sharing": {
+            "url": "https://www.ozon.ru/product/mobilnyy-telefon-bq-2820-step-xl-black-bez-kamery-2608238581/questions/?qid=189309660&utm_campaign=reviews_link&utm_medium=share_button&utm_source=smm"
+          },
+          "content": "образец вопроса",
+          "createdAt": "21 ноября 2022",
+          "url": "https://www.ozon.ru/product/mobilnyy-telefon-bq-2820-step-xl-white-blue-bez-kamery-2608235411/question/189309660/",
+          "additionalActions": null,
+          "itemId": 2608238581,
+          "id": 189309660,
+          "isAnchor": false
+        },
+        "179124857": {
+          "author": {
+            "name": "Пользователь",
+            "avatarUrl": "https://cdn1.ozonusercontent.com/s3/fs-my-account-avatar/WqDUg8LxRFS5ts5_gofCqA.jpg",
+            "pageUrl": "/context/client_opinion/ClientGuid/4c1dd7ff-b7ca-45bc-ba02-1c8ecbc90ddf/",
+            "partnerCaption": ""
+          },
+          "getAnswersAction": {
+            "type": "getAnswers",
+            "loadMoreText": "Еще 1 ответ",
+            "action": "getAnswers?keepAnswerIds=179158783&questionId=179124857",
+            "direct": true
+          },
+          "usefulness": {
+            "type": "icon",
+            "actions": [
+              {
+                "type": "like",
+                "action": "likeQuestion?questionId=179124857",
+                "val": 1,
+                "isSelected": false,
+                "isAvailable": false,
+                "direct": true
+              }
+            ]
+          },
+          "sharing": {
+            "url": "https://www.ozon.ru/product/mobilnyy-telefon-bq-2820-step-xl-black-orange-bez-kamery-2608238219/questions/?qid=179124857&utm_campaign=reviews_link&utm_medium=share_button&utm_source=smm"
+          },
+          "content": "образец вопроса",
+          "createdAt": "24 мая 2022",
+          "url": "https://www.ozon.ru/product/mobilnyy-telefon-bq-2820-step-xl-white-blue-bez-kamery-2608235411/question/179124857/",
+          "additionalActions": null,
+          "itemId": 2608238219,
+          "id": 179124857,
+          "isAnchor": false
+        }
+      },
+      "answers": {
+        "189575263": {
+          "author": {
+            "name": "Магазин",
+            "avatarUrl": "https://cdn1.ozonusercontent.com/s3/marketing-api/banners/e3/iZ/e3iZhQTa2tIMmfsLPUg7gEiupFJMz2oJ.png",
+            "pageUrl": "",
+            "partnerCaption": ""
+          },
+          "usefulness": {
+            "type": "text",
+            "actions": [
+              {
+                "type": "like",
+                "action": "voteAnswer?answerId=189575263&action=like",
+                "val": 2,
+                "isSelected": false,
+                "isAvailable": false,
+                "direct": true
+              },
+              {
+                "type": "dislike",
+                "action": "voteAnswer?answerId=189575263&action=dislike",
+                "val": 0,
+                "isSelected": false,
+                "isAvailable": false,
+                "direct": true
+              }
+            ]
+          },
+          "sharing": {
+            "url": "https://www.ozon.ru/product/mobilnyy-telefon-bq-2820-step-xl-black-bez-kamery-2608238581/questions/?aid=189575263&qid=189309660&utm_campaign=reviews_link&utm_medium=share_button&utm_source=smm"
+          },
+          "makeTheBestAction": null,
+          "createdAt": "23 ноября 2022",
+          "content": "образец ответа",
+          "trustFactor": "",
+          "additionalActions": null,
+          "id": 189575263,
+          "isTheBest": true,
+          "isAnchor": false
+        },
+        "179158783": {
+          "author": {
+            "name": "Магазин",
+            "avatarUrl": "",
+            "pageUrl": "/context/client_opinion/ClientGuid/301c8ff6-564e-42be-bfa0-352d0e779e91/",
+            "partnerCaption": ""
+          },
+          "usefulness": {
+            "type": "text",
+            "actions": [
+              {
+                "type": "like",
+                "action": "voteAnswer?answerId=179158783&action=like",
+                "val": 2,
+                "isSelected": false,
+                "isAvailable": false,
+                "direct": true
+              },
+              {
+                "type": "dislike",
+                "action": "voteAnswer?answerId=179158783&action=dislike",
+                "val": 0,
+                "isSelected": false,
+                "isAvailable": false,
+                "direct": true
+              }
+            ]
+          },
+          "sharing": {
+            "url": "https://www.ozon.ru/product/mobilnyy-telefon-bq-2820-step-xl-black-orange-bez-kamery-2608238219/questions/?aid=179158783&qid=179124857&utm_campaign=reviews_link&utm_medium=share_button&utm_source=smm"
+          },
+          "makeTheBestAction": null,
+          "createdAt": "25 мая 2022",
+          "content": "образец ответа",
+          "trustFactor": "",
+          "additionalActions": null,
+          "id": 179158783,
+          "isTheBest": true,
+          "isAnchor": false
+        }
+      },
+      "questionAnswers": {
+        "189309660": [
+          "189575263"
+        ],
+        "179124857": [
+          "179158783"
+        ]
+      },
+      "questionsIds": [
+        "189309660",
+        "179124857"
+      ]
+    }
+  }
+}

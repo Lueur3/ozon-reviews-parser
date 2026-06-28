@@ -1,0 +1,178 @@
+{
+  "widgetStates": {
+    "webListReviews-3638521-reviewshelfpaginator-3": {
+      "reviews": [
+        {
+          "sharing": {
+            "url": "https://www.ozon.ru/product/mobilnyy-telefon-bq-2842-disco-boom-black-2608237202/reviews/?ruuid=019ed18a-5f83-7be5-a8fb-21c7e4b96ceb&utm_campaign=reviews_link&utm_medium=share_button&utm_source=smm",
+            "sharingTrackingInfo": {
+              "click": {
+                "actionType": "share",
+                "key": "20"
+              }
+            }
+          },
+          "editUrl": "",
+          "updatedAt": null,
+          "publishedAt": 1781631970,
+          "author": {
+            "clientOfficial": null,
+            "avatarUrl": "",
+            "guid": "",
+            "firstName": "Имя",
+            "lastName": "Т.",
+            "fio": "",
+            "officialUser": null
+          },
+          "status": {
+            "name": "Опубликован",
+            "id": 5
+          },
+          "usefulness": {
+            "userSelection": "UNKNOWN",
+            "useful": 0,
+            "unuseful": 0
+          },
+          "itemId": 2608237202,
+          "createdAt": 1781631970,
+          "version": 0,
+          "statusId": 5,
+          "uuid": "019ed18a-5f83-7be5-a8fb-21c7e4b96ceb",
+          "isDeletable": false,
+          "isEdited": false,
+          "isEditable": false,
+          "isVotable": false,
+          "isReportable": false,
+          "isDeleted": false,
+          "isRejected": false,
+          "isAbuseReported": false,
+          "isAnchor": false,
+          "abuseReportTrackingInfo": {
+            "click": {
+              "actionType": "abuse",
+              "key": "19"
+            }
+          },
+          "content": {
+            "comment": "образец текста отзыва",
+            "positive": "",
+            "negative": "",
+            "videos": [],
+            "photos": [],
+            "contextQuestions": [],
+            "score": 5
+          },
+          "comments": {
+            "list": [],
+            "totalCount": 1
+          },
+          "isCommentable": false,
+          "isAnonymous": false,
+          "showVariantImage": false,
+          "isUserReview": false,
+          "isItemPurchased": false,
+          "OrderType": 1,
+          "HasContextQuestionsByProduct": false,
+          "Lang": "ru",
+          "translateButton": null,
+          "badgeDelivery": null
+        },
+        {
+          "sharing": {
+            "url": "https://www.ozon.ru/product/mobilnyy-telefon-bq-2842-disco-boom-black-2608237202/reviews/?ruuid=019ece39-2413-72b0-bb65-b2221830f5ef&utm_campaign=reviews_link&utm_medium=share_button&utm_source=smm",
+            "sharingTrackingInfo": {
+              "click": {
+                "actionType": "share",
+                "key": "31"
+              }
+            }
+          },
+          "editUrl": "",
+          "updatedAt": null,
+          "publishedAt": 1781576314,
+          "author": {
+            "clientOfficial": null,
+            "avatarUrl": "",
+            "guid": "",
+            "firstName": "Имя",
+            "lastName": "Т.",
+            "fio": "",
+            "officialUser": null
+          },
+          "status": {
+            "name": "Опубликован",
+            "id": 5
+          },
+          "usefulness": {
+            "userSelection": "UNKNOWN",
+            "useful": 0,
+            "unuseful": 0
+          },
+          "itemId": 2608237202,
+          "createdAt": 1781576314,
+          "version": 0,
+          "statusId": 5,
+          "uuid": "019ece39-2413-72b0-bb65-b2221830f5ef",
+          "isDeletable": false,
+          "isEdited": false,
+          "isEditable": false,
+          "isVotable": false,
+          "isReportable": false,
+          "isDeleted": false,
+          "isRejected": false,
+          "isAbuseReported": false,
+          "isAnchor": false,
+          "abuseReportTrackingInfo": {
+            "click": {
+              "actionType": "abuse",
+              "key": "30"
+            }
+          },
+          "content": {
+            "comment": "образец текста отзыва",
+            "positive": "",
+            "negative": "",
+            "videos": [],
+            "photos": [],
+            "contextQuestions": [],
+            "score": 5
+          },
+          "comments": {
+            "list": [],
+            "totalCount": 1
+          },
+          "isCommentable": false,
+          "isAnonymous": false,
+          "showVariantImage": false,
+          "isUserReview": false,
+          "isItemPurchased": false,
+          "OrderType": 1,
+          "HasContextQuestionsByProduct": false,
+          "Lang": "ru",
+          "translateButton": null,
+          "badgeDelivery": null
+        }
+      ],
+      "products": {
+        "2608237202": {
+          "name": "Мобильный телефон BQ 2842 Disco Boom Black",
+          "coverImage": "https://ir.ozone.ru/s3/multimedia-1-k/8517511424.jpg",
+          "uri": "/product/mobilnyy-telefon-bq-2842-disco-boom-black-2608237202/",
+          "variants": [
+            {
+              "name": "Цвет товара",
+              "value": "черный-черный матовый"
+            }
+          ],
+          "itemId": 2608237202,
+          "Score": 0,
+          "IsAvailableForSocial": true
+        }
+      },
+      "productScore": 4.8,
+      "paging": {
+        "total": 5065
+      }
+    }
+  }
+}

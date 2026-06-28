@@ -15,6 +15,11 @@ PRODUCT_DELAY = (3.0, 6.0)   # между товарами
 # Браузер (headless задаётся флагом --headless; по умолчанию видимое окно)
 NAV_TIMEOUT_MS = 60_000
 
+# Самопроверка (--doctor): эталонный товар со всеми секциями и пороги PASS
+DOCTOR_URL = "https://www.ozon.ru/product/138342427/"
+DOCTOR_MIN_CHARS = 5         # минимум характеристик для PASS
+DOCTOR_MAX_REVIEWS = 20      # лёгкий сбор — проверке хватает
+
 # Пути
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "output"     # сюда пишутся {product_id}.json
