@@ -77,12 +77,14 @@ def test_meta_shape():
     c.product_id = "1"
     c.resolved_url = "https://ozon.ru/product/x-1/"
     c.score, c.total = 4.8, 123
-    meta = c._meta(price={"price": "10 ₽"}, characteristics={"Тип": "X"}, questions=[])
+    meta = c._meta(price={"price": "10 ₽"}, characteristics={"Тип": "X"},
+                   questions=[], stats={"overall": {}})
     assert meta["product_id"] == "1"
     assert meta["price"] == {"price": "10 ₽"}
+    assert meta["stats"] == {"overall": {}}
     assert meta["score"] == 4.8 and meta["total"] == 123
     assert set(meta) == {"product_id", "resolved_url", "name", "variant",
-                         "price", "characteristics", "questions", "score", "total"}
+                         "price", "stats", "characteristics", "questions", "score", "total"}
 
 
 def test_is_empty():

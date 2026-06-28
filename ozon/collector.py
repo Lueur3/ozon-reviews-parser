@@ -15,10 +15,12 @@ import asyncio
 import json
 import logging
 import random
+from datetime import datetime
 from urllib.parse import quote, urlparse
 
 import config
 from . import parse
+from .stats import compute_stats
 from .urls import extract_product_id
 
 _API_PATH = "/api/entrypoint-api.bx/page/json/v2?url="
@@ -104,10 +106,11 @@ class ReviewCollector:
 
         await self._collect_review_feed()
 
+        stats = self._stats()
         reviews, skipped = self._filtered()
         log.info("итог: собрано=%d, пустых пропущено=%d, после фильтров=%d (all_variants=%s)",
                  len(self.reviews_by_uuid), skipped, len(reviews), self.all_variants)
-        return reviews, self._meta(price, characteristics, questions)
+        return reviews, self._meta(price, characteristics, questions, stats)
 
     # ------------------------------------------------------------------ #
     # Bootstrap и слушатель ответов
@@ -343,7 +346,12 @@ class ReviewCollector:
         out.sort(key=lambda r: r.date, reverse=True)
         return out[:self.max_reviews], skipped_empty
 
-    def _meta(self, price: dict, characteristics: dict, questions: list) -> dict:
+    def _stats(self) -> dict:
+        """Сводная статистика оценок по сырым собранным отзывам (overall — из Ozon)."""
+        return compute_stats(self.reviews_by_uuid.values(), self.score, self.total,
+                             datetime.now(parse._TZ))
+
+    def _meta(self, price: dict, characteristics: dict, questions: list, stats: dict) -> dict:
         """Сводка meta для runner."""
         return {
             "product_id": self.product_id,
@@ -351,6 +359,7 @@ class ReviewCollector:
             "name": (self.products.get(str(self.product_id)) or {}).get("name", ""),
             "variant": parse.variant_map(self.product_id, self.products),
             "price": price,
+            "stats": stats,
             "characteristics": characteristics,
             "questions": questions,
             "score": self.score,

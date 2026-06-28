@@ -39,6 +39,7 @@ async def _run_async(urls, period_days, all_variants, headless, max_reviews):
                 name=name,
                 variant=meta.get("variant", {}),
                 price=meta.get("price", {}),
+                stats=meta.get("stats", {}),
                 characteristics=meta.get("characteristics", {}),
                 questions=meta.get("questions", []),
                 reviews_period_days=period_days,

@@ -25,6 +25,7 @@ class Product:
     name: str = ""
     variant: dict = field(default_factory=dict)          # вариант целевого товара
     price: dict = field(default_factory=dict)            # {price, card_price, original_price, ...}
+    stats: dict = field(default_factory=dict)            # сводная статистика оценок (overall + окна)
     characteristics: dict = field(default_factory=dict)
     questions: list = field(default_factory=list)        # вопросы с ответами
     reviews_period_days: int = 0
@@ -37,6 +38,7 @@ class Product:
             "name": self.name,
             "variant": self.variant,
             "price": self.price,
+            "stats": self.stats,
             "characteristics": self.characteristics,
             "questions_count": len(self.questions),
             "questions": self.questions,
