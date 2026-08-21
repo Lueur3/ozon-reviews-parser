@@ -49,9 +49,10 @@ def load_urls(args) -> list[str]:
 def main(argv=None):
     args = parse_args(argv)
 
+    # Ленивые импорты: --help работает без установленного playwright.
     if args.doctor:
         from ozon.doctor import run_doctor
-        raise SystemExit(run_doctor(args.url or config.DOCTOR_URL))
+        raise SystemExit(_guarded(lambda: run_doctor(args.url or config.DOCTOR_URL)))
 
     if not (args.url or args.file):
         raise SystemExit("Нужна ссылка на товар, -f файл или --doctor.")
@@ -59,15 +60,27 @@ def main(argv=None):
     if not urls:
         raise SystemExit("Не передано ни одной ссылки.")
 
-    # Ленивый импорт: --help работает без установленного playwright.
     from ozon.runner import run
-    run(
+    raise SystemExit(_guarded(lambda: run(
         urls,
         period_days=int(args.years * 365),
         all_variants=not args.this_variant,
         headless=args.headless,
         max_reviews=args.max,
-    )
+    )))
+
+
+def _guarded(action):
+    """Запускает работу, переводя прерывание и известные сбои в понятный текст."""
+    from ozon.errors import OzonParserError
+    try:
+        return action() or 0
+    except KeyboardInterrupt:
+        print("\nПрервано пользователем.")
+        return 130                      # общепринятый код для SIGINT
+    except OzonParserError as e:
+        print(f"Ошибка: {e}")
+        return 1
 
 
 if __name__ == "__main__":

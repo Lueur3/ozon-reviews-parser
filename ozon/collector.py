@@ -13,13 +13,14 @@
 """
 import asyncio
 import json
-import logging
 import random
 from datetime import datetime
 from urllib.parse import quote, urlparse
 
 import config
 from . import parse
+from .errors import BootstrapError, CaptchaTimeout
+from .logging_setup import get_logger
 from .stats import compute_stats
 from .urls import extract_product_id
 
@@ -37,14 +38,7 @@ _FETCH_JS = """async ({u, h}) => {
     return {status: r.status, text: await r.text()};
 }"""
 
-_LOGDIR = config.BASE_DIR / "logs"
-_LOGDIR.mkdir(exist_ok=True)
-log = logging.getLogger("ozon.collector")
-if not log.handlers:
-    _h = logging.FileHandler(_LOGDIR / "reviews.log", encoding="utf-8")
-    _h.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-    log.addHandler(_h)
-    log.setLevel(logging.INFO)
+log = get_logger("ozon.collector")
 
 
 def _origin(url: str) -> str:
@@ -151,7 +145,13 @@ class ReviewCollector:
 
         log.info("bootstrap: id=%s headers=%s shelf_next=%s reviews=%d",
                  self.product_id, bool(self.headers), bool(self.shelf_next), len(self.reviews_by_uuid))
-        self.headers = self.headers or {}
+        # Без заголовков живой сессии любой fetch получит 403 — падаем сразу с понятной
+        # причиной, а не собираем пустоту (раньше здесь был молчаливый фолбэк на {}).
+        if not self.headers:
+            raise BootstrapError(
+                "не удалось снять заголовки внутреннего API Ozon с живой сессии. "
+                "Вероятно: страница не загрузилась, VPN включён, или Ozon сменил эндпоинт. "
+                f"Итоговый URL: {self.resolved_url or self.url}")
 
     def _absorb(self, data: dict) -> int:
         """Вынуть отзывы из webListReviews в reviews_by_uuid; вернуть число новых."""
@@ -184,7 +184,10 @@ class ReviewCollector:
                 self.headers = {k: v for k, v in hh.items()
                                 if k.lower() not in _DROP_HEADERS and not k.startswith(":")}
             data = await resp.json()
-        except Exception:
+        except Exception as e:
+            # Ответ мог быть отменён/не-JSON — это штатно, но причину пишем в лог,
+            # иначе поломка структуры Ozon выглядит как «просто пусто».
+            log.debug("ответ %s не разобран: %r", getattr(resp, "url", "?"), e)
             return
         self._absorb(data)
         np = data.get("nextPage")
@@ -204,24 +207,31 @@ class ReviewCollector:
         """GET entrypoint-api JSON в контексте страницы. При капче/блоке ждёт решения и повторяет."""
         api = self.origin + _API_PATH + quote(param, safe="")
         waited = False
+        reason = "неизвестно"
         for _ in range(_CAPTCHA_WAIT_ITERS):
             try:
                 res = await self.page.evaluate(_FETCH_JS, {"u": api, "h": self.headers})
                 if isinstance(res, dict) and res.get("status") == 200:
                     return json.loads(res["text"])
-            except Exception:
-                pass
+                reason = f"HTTP {res.get('status') if isinstance(res, dict) else '?'}"
+            except json.JSONDecodeError as e:
+                reason = f"ответ не JSON ({e})"          # обычно HTML страницы капчи
+            except Exception as e:
+                reason = repr(e)                          # сеть/страница закрыта/JS упал
+            log.debug("fetch %s не удался: %s", param, reason)
             if not waited:
                 print(">>> Капча/блокировка Ozon. Реши капчу в открытом окне Chrome — "
                       "жду и продолжу сам...")
-                log.warning("captcha/block: жду решения пользователя в окне")
+                log.warning("captcha/block (%s): жду решения пользователя в окне", reason)
                 try:
                     await self.page.goto(self.resolved_url, wait_until="domcontentloaded")
-                except Exception:
-                    pass
+                except Exception as e:
+                    log.warning("не удалось открыть страницу для капчи: %r", e)
                 waited = True
             await self.page.wait_for_timeout(4000)
-        raise RuntimeError("капча не решена за отведённое время")
+        raise CaptchaTimeout(
+            f"за {_CAPTCHA_WAIT_ITERS * 4 // 60} мин доступ не восстановился "
+            f"(последняя причина: {reason}). Проверь VPN и решённую капчу в окне Chrome.")
 
     # ------------------------------------------------------------------ #
     # Доп. данные карточки

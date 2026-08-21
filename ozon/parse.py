@@ -1,10 +1,18 @@
-"""Парсинг JSON-ответов Ozon (entrypoint-api page json v2)."""
+"""Парсинг JSON-ответов Ozon (entrypoint-api page json v2).
+
+Поля читаются защитно (`.get()`), потому что Ozon меняет состав ответа без
+предупреждения: строгая схема роняла бы сбор на каждом новом поле. Отсутствие
+ожидаемых данных ловится уровнем выше — самопроверкой `--doctor`.
+"""
 import json
 from datetime import datetime, timedelta
 
 from dateutil import tz
 
+from .logging_setup import get_logger
 from .models import Review
+
+log = get_logger("ozon.parse")
 
 _TZ = tz.gettz("Europe/Moscow") or tz.UTC
 
@@ -15,7 +23,8 @@ def _widget_states(data: dict) -> dict:
         if isinstance(v, str):
             try:
                 out[k] = json.loads(v)
-            except Exception:
+            except json.JSONDecodeError as e:
+                log.debug("виджет %s: значение не JSON (%s)", k, e)
                 continue
         elif isinstance(v, dict):
             out[k] = v
@@ -103,7 +112,8 @@ def _question_widget(data: dict):
     if isinstance(st, str):
         try:
             st = json.loads(st)
-        except Exception:
+        except json.JSONDecodeError as e:
+            log.debug("state вопросов не разобран: %s", e)
             st = None
     if isinstance(st, dict) and "questions" in st:
         return st
