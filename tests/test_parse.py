@@ -131,6 +131,18 @@ def test_ts_to_date_moscow():
     assert parse.ts_to_date(None) == "1970-01-01"
 
 
+def test_cutoff_ts_uses_injected_now():
+    from datetime import datetime, timedelta
+
+    from dateutil import tz
+
+    now = datetime(2026, 6, 28, 12, 0, tzinfo=tz.gettz("Europe/Moscow"))
+    assert parse.cutoff_ts(365, now) == (now - timedelta(days=365)).timestamp()
+    assert parse.cutoff_ts(0, now) == now.timestamp()
+    # без now берётся текущее время — граница должна быть в прошлом
+    assert parse.cutoff_ts(1) < datetime.now(tz=tz.gettz("Europe/Moscow")).timestamp()
+
+
 def test_media_urls_variants():
     items = [{"url": "a"}, {"previewUrl": "b"}, {"image": "c"}, "d", {"nope": 1}]
     assert parse._media_urls(items) == ["a", "b", "c", "d"]
