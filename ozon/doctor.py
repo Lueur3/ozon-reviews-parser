@@ -44,10 +44,10 @@ def _print_report(url: str, meta: dict, report: list) -> None:
     print("ИТОГ:", "OK" if not has_failures(report) else "ЕСТЬ ПОЛОМКИ — см. FAIL выше")
 
 
-async def _run_doctor_async(url: str) -> int:
+async def _run_doctor_async(url: str, fresh_profile: bool = False) -> int:
     from .browser import launch_browser
     from .collector import ReviewCollector
-    async with launch_browser(headless=False) as (_context, page):
+    async with launch_browser(headless=False, fresh_profile=fresh_profile) as (_context, page):
         collector = ReviewCollector(page, url, period_days=config.REVIEW_PERIOD_DAYS,
                                     all_variants=True, max_reviews=config.DOCTOR_MAX_REVIEWS,
                                     page_delay=config.PAGE_DELAY)
@@ -57,6 +57,6 @@ async def _run_doctor_async(url: str) -> int:
     return 1 if has_failures(report) else 0
 
 
-def run_doctor(url: str) -> int:
+def run_doctor(url: str, fresh_profile: bool = False) -> int:
     """Живая самопроверка. Возвращает код выхода (0 — ок, 1 — есть FAIL)."""
-    return asyncio.run(_run_doctor_async(url))
+    return asyncio.run(_run_doctor_async(url, fresh_profile=fresh_profile))

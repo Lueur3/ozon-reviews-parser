@@ -41,6 +41,11 @@ def parse_args(argv=None):
                    help=f"максимум отзывов на товар (по умолчанию {config.MAX_REVIEWS_PER_PRODUCT})")
     p.add_argument("--doctor", action="store_true",
                    help="самопроверка парсинга (эталонный товар или переданная ссылка)")
+    p.add_argument("--output-dir", type=Path, default=config.OUTPUT_DIR,
+                   help=f"куда писать JSON (по умолчанию {config.OUTPUT_DIR.name}/)")
+    p.add_argument("--fresh-profile", action="store_true",
+                   help="удалить сохранённый профиль браузера перед запуском "
+                        "(если сессия испортилась: залипла капча, забанен отпечаток)")
     return p.parse_args(argv)
 
 
@@ -57,7 +62,8 @@ def main(argv=None):
     # Ленивые импорты: --help работает без установленного playwright.
     if args.doctor:
         from .doctor import run_doctor
-        raise SystemExit(guarded(lambda: run_doctor(args.url or config.DOCTOR_URL)))
+        raise SystemExit(guarded(lambda: run_doctor(args.url or config.DOCTOR_URL,
+                                                    fresh_profile=args.fresh_profile)))
 
     if not (args.url or args.file):
         raise SystemExit("Нужна ссылка на товар, -f файл или --doctor.")
@@ -72,6 +78,8 @@ def main(argv=None):
         all_variants=not args.this_variant,
         headless=args.headless,
         max_reviews=args.max,
+        output_dir=args.output_dir,
+        fresh_profile=args.fresh_profile,
     )))
 
 
