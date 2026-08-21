@@ -11,6 +11,7 @@ scripts/*. Смена версии API означала правку в пяти
 import json
 from urllib.parse import quote, urlparse
 
+from . import config
 from .errors import CaptchaTimeout
 from .logging_setup import get_logger
 
@@ -24,6 +25,15 @@ SORT_SCORE_ASC = "score_asc"
 SORT_SCORE_DESC = "score_desc"
 QUESTIONS_SORT = "has_answers_desc"          # «сначала с ответом»
 
+# Имена виджетов в ответе Ozon. Меняются при редизайне их фронта — тогда парсинг
+# соответствующего блока замолкает, и это ловит `--doctor`.
+WIDGET_REVIEWS = "webListReviews"
+WIDGET_PRICE = "webPrice-"                   # дефис обязателен: без него совпадёт
+                                             # декоративный webPriceDecreasedCompact
+WIDGET_CHARACTERISTICS = "webCharacteristics"
+WIDGET_SHORT_CHARACTERISTICS = "webShortCharacteristics"
+WIDGET_QUESTIONS = "webListQuestions"
+
 # Заголовки, которые браузер выставит сам: свои значения ломают fetch.
 DROP_HEADERS = {"host", "cookie", "content-length", "accept-encoding", "connection",
                 "user-agent", "origin", "referer"}
@@ -34,8 +44,7 @@ FETCH_JS = """async ({u, h}) => {
     return {status: r.status, text: await r.text()};
 }"""
 
-CAPTCHA_WAIT_ITERS = 75      # ~5 минут (по 4 с) на ручное решение капчи в окне
-CAPTCHA_POLL_MS = 4000
+
 
 
 def origin_of(url: str) -> str:
@@ -79,7 +88,8 @@ class OzonClient:
     """Запросы к entrypoint-api в контексте страницы, с ожиданием решения капчи."""
 
     def __init__(self, page, origin: str, headers: dict, recovery_url: str = "",
-                 captcha_iters: int = CAPTCHA_WAIT_ITERS, poll_ms: int = CAPTCHA_POLL_MS):
+                 captcha_iters: int = config.CAPTCHA_WAIT_ITERS,
+                 poll_ms: int = config.CAPTCHA_POLL_MS):
         self.page = page
         self.origin = origin
         self.headers = headers

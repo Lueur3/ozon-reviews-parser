@@ -2,7 +2,7 @@ r"""Recon для цены, характеристик и вопросов/отв
 
 ВАЖНО: запускать с ВЫКЛЮЧЕННЫМ VPN.
 
-    .\.venv\Scripts\python.exe scripts/recon_extra.py "https://ozon.ru/t/nPDyAby"
+    .\.venv\Scripts\python.exe scripts/recon_extra.py "<ссылка на товар>"
 
 Берёт заголовки API из живой сессии и через fetch тянет JSON карточки и
 раздела вопросов. Сохраняет сырьё в captures/extra/ и карту виджетов

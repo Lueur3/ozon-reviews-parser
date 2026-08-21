@@ -15,7 +15,7 @@ def parse_args(argv=None):
         description="Парсер отзывов товаров Ozon в JSON (один файл на товар: output/<id>.json).",
         epilog=(
             "Примеры:\n"
-            '  python main.py "https://ozon.ru/t/xxxxxxx"            все варианты, отзывы за год\n'
+            '  python main.py "<ссылка на товар>"            все варианты, отзывы за год\n'
             '  python main.py "<ссылка>" --this-variant              только вариант из ссылки\n'
             '  python main.py "<ссылка>" --years 2 --max 1000        за 2 года, до 1000 отзывов\n'
             "  python main.py -f urls.txt                            список ссылок из файла\n"
@@ -40,7 +40,7 @@ def parse_args(argv=None):
     p.add_argument("--max", type=int, default=config.MAX_REVIEWS_PER_PRODUCT,
                    help=f"максимум отзывов на товар (по умолчанию {config.MAX_REVIEWS_PER_PRODUCT})")
     p.add_argument("--doctor", action="store_true",
-                   help="самопроверка парсинга (эталонный товар или переданная ссылка)")
+                   help="самопроверка парсинга по переданной ссылке: печатает PASS/WARN/FAIL по секциям")
     p.add_argument("--output-dir", type=Path, default=config.OUTPUT_DIR,
                    help=f"куда писать JSON (по умолчанию {config.OUTPUT_DIR.name}/)")
     p.add_argument("--fresh-profile", action="store_true",
@@ -61,8 +61,10 @@ def main(argv=None):
 
     # Ленивые импорты: --help работает без установленного playwright.
     if args.doctor:
+        if not args.url:
+            raise SystemExit("Для --doctor нужна ссылка на товар: main.py --doctor \"<ссылка>\"")
         from .doctor import run_doctor
-        raise SystemExit(guarded(lambda: run_doctor(args.url or config.DOCTOR_URL,
+        raise SystemExit(guarded(lambda: run_doctor(args.url,
                                                     fresh_profile=args.fresh_profile)))
 
     if not (args.url or args.file):

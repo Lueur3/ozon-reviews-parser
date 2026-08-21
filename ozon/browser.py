@@ -58,7 +58,7 @@ async def launch_browser(headless: bool = False, profile_dir: Path = config.PROF
     async with async_playwright() as p:
         context = await p.chromium.launch_persistent_context(
             user_data_dir=str(profile_dir),
-            channel="chrome",
+            channel=config.BROWSER_CHANNEL,
             headless=headless,
             no_viewport=True,
         )

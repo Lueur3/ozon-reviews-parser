@@ -2,7 +2,7 @@ r"""Recon догрузки всех ответов (без кликов, чер�
 
 ВАЖНО: VPN выключен.
 
-    .\.venv\Scripts\python.exe scripts/recon_answers.py "https://ozon.ru/t/nPDyAby"
+    .\.venv\Scripts\python.exe scripts/recon_answers.py "<ссылка на товар>"
 
 Берёт страницу вопросов, находит вопрос с пометкой 'Ещё N ответ'
 (getAnswersAction), затем фетчит его личную страницу /question/<id>/ и

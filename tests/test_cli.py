@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from ozon import config
-from ozon.cli import guarded, load_urls, parse_args
+from ozon.cli import guarded, load_urls, main, parse_args
 from ozon.errors import BootstrapError
 
 
@@ -32,9 +32,16 @@ def test_url_and_file_are_mutually_exclusive():
         parse_args(["<url>", "-f", "urls.txt"])
 
 
-def test_doctor_without_url_is_allowed():
+def test_doctor_needs_explicit_url():
+    """Эталонный товар больше не зашит в код — ссылку задаёт пользователь."""
     a = parse_args(["--doctor"])
-    assert a.doctor is True and a.url is None
+    assert a.doctor is True and a.url is None      # argparse пропускает
+    with pytest.raises(SystemExit) as e:
+        main(["--doctor"])                          # а main требует ссылку
+    assert "ссылка" in str(e.value)
+
+    a = parse_args(["<url>", "--doctor"])
+    assert a.doctor is True and a.url == "<url>"
 
 
 def test_load_urls_from_file(tmp_path):

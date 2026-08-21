@@ -9,12 +9,13 @@ from datetime import datetime, timedelta
 
 from dateutil import tz
 
+from . import api, config
 from .logging_setup import get_logger
 from .models import Review
 
 log = get_logger("ozon.parse")
 
-_TZ = tz.gettz("Europe/Moscow") or tz.UTC
+_TZ = tz.gettz(config.TIMEZONE) or tz.UTC
 
 
 def _widget_states(data: dict) -> dict:
@@ -34,7 +35,7 @@ def _widget_states(data: dict) -> dict:
 def extract_reviews_widget(data: dict):
     """Из webListReviews возвращает (reviews_raw, products, score, total) или None."""
     for k, w in _widget_states(data).items():
-        if k.startswith("webListReviews") and isinstance(w, dict) and "reviews" in w:
+        if k.startswith(api.WIDGET_REVIEWS) and isinstance(w, dict) and "reviews" in w:
             return (
                 w.get("reviews") or [],
                 w.get("products") or {},
@@ -54,7 +55,7 @@ def _find_widget(data: dict, prefix: str):
 def parse_price(data: dict) -> dict:
     """Из виджета webPrice-<id> (не webPriceDecreasedCompact и подобных)."""
     for k, w in _widget_states(data).items():
-        if not (k.startswith("webPrice-") and isinstance(w, dict)):
+        if not (k.startswith(api.WIDGET_PRICE) and isinstance(w, dict)):
             continue
         if not (w.get("price") or w.get("cardPrice")):
             continue
@@ -85,14 +86,14 @@ def parse_characteristics(data: dict) -> dict:
     """{название: значение}. На /features/ несколько webCharacteristics — берём самый полный."""
     best = {}
     for k, w in _widget_states(data).items():
-        if k.startswith("webCharacteristics"):
+        if k.startswith(api.WIDGET_CHARACTERISTICS):
             c = _chars_from_webchar(w)
             if len(c) > len(best):
                 best = c
     if best:
         return best
     # откат: webShortCharacteristics (вложенная структура карточки)
-    w = _find_widget(data, "webShortCharacteristics")
+    w = _find_widget(data, api.WIDGET_SHORT_CHARACTERISTICS)
     if isinstance(w, dict):
         for ch in w.get("characteristics", []):
             title = ch.get("title") or {}
@@ -106,7 +107,7 @@ def parse_characteristics(data: dict) -> dict:
 
 def _question_widget(data: dict):
     for k, w in _widget_states(data).items():
-        if k.startswith("webListQuestions") and isinstance(w, dict):
+        if k.startswith(api.WIDGET_QUESTIONS) and isinstance(w, dict):
             return w
     st = data.get("state")
     if isinstance(st, str):

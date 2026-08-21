@@ -21,10 +21,6 @@ from .logging_setup import get_logger
 from .stats import compute_stats
 from .urls import extract_product_id
 
-_HEADER_SCROLLS = 12       # прокруток карточки, чтобы поймать запрос к API и курсор полки
-_MAX_FETCH_PAGES = 4000    # предохранитель от бесконечной пагинации (~120к отзывов)
-_EMPTY_LIMIT = 8           # страниц без новых uuid подряд = конец ленты (терпим дубли)
-
 log = get_logger("ozon.collector")
 
 
@@ -94,14 +90,14 @@ class ReviewCollector:
         self.page.on("response", schedule)
         try:
             await self.page.goto(self.url, wait_until="domcontentloaded")
-            await self.page.wait_for_timeout(2500)
+            await self.page.wait_for_timeout(config.PAGE_SETTLE_MS)
             await self._drain()
             self.resolved_url = self.page.url
             self.product_id = extract_product_id(self.resolved_url)
-            for _ in range(_HEADER_SCROLLS):
+            for _ in range(config.HEADER_SCROLLS):
                 if self.headers and self.shelf_next:
                     break
-                await self.page.mouse.wheel(0, 3000)
+                await self.page.mouse.wheel(0, config.SCROLL_STEP_PX)
                 await self.page.wait_for_timeout(random.uniform(*self.page_delay) * 1000)
                 await self._drain()
         finally:
@@ -195,7 +191,7 @@ class ReviewCollector:
             log.warning("features (полные характеристики) не получены: %r", e)
         return price, characteristics
 
-    async def _collect_questions(self, max_pages: int = 12) -> list:
+    async def _collect_questions(self, max_pages: int = config.QUESTION_PAGES) -> list:
         """Вопросы с ответами (сорт «сначала с ответом»; анонимно ~90 вопросов).
 
         У вопросов с пометкой «Ещё N ответ» догружаем все ответы со страницы вопроса.
@@ -235,8 +231,8 @@ class ReviewCollector:
         """Гонять курсор пагинации. Причина остановки: cutoff|end|limit|error."""
         pages = 0
         empty = 0
-        while param and "review" in param.lower() and pages < _MAX_FETCH_PAGES:
-            if len(self.reviews_by_uuid) >= self.max_reviews * 3:
+        while param and "review" in param.lower() and pages < config.MAX_FETCH_PAGES:
+            if len(self.reviews_by_uuid) >= self.max_reviews * config.COLLECT_OVERSHOOT:
                 log.info("[%s] stop: лимит набран", label)
                 return "limit"
             try:
@@ -256,8 +252,8 @@ class ReviewCollector:
                 log.info("[%s] stop: достигнут период", label)
                 return "cutoff"
             empty = empty + 1 if added == 0 else 0
-            if empty >= _EMPTY_LIMIT:
-                log.info("[%s] stop: %d страниц без новых (стена анонима/конец)", label, _EMPTY_LIMIT)
+            if empty >= config.EMPTY_PAGES_LIMIT:
+                log.info("[%s] stop: %d страниц без новых (стена анонима/конец)", label, config.EMPTY_PAGES_LIMIT)
                 return "end"
             param = data.get("nextPage")
             await self.page.wait_for_timeout(random.uniform(*config.FETCH_DELAY) * 1000)

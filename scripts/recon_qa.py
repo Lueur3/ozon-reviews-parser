@@ -2,7 +2,7 @@ r"""Recon пагинации вопросов-ответов (Q&A).
 
 ВАЖНО: VPN выключен.
 
-    .\.venv\Scripts\python.exe scripts/recon_qa.py "https://ozon.ru/t/nPDyAby"
+    .\.venv\Scripts\python.exe scripts/recon_qa.py "<ссылка на товар>"
 
 Открывает /questions/?qsort=has_answers_desc, листает вниз и ловит запросы
 подгрузки вопросов. Сохраняет captures/qa/*.json (ответы с webListQuestions)
@@ -97,6 +97,6 @@ async def main(url):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print('нужна ссылка: python scripts/recon_qa.py "https://ozon.ru/t/nPDyAby"')
+        print('нужна ссылка: python scripts/recon_qa.py "<ссылка на товар>"')
         sys.exit(1)
     asyncio.run(main(sys.argv[1]))

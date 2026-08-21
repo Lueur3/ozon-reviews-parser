@@ -14,6 +14,7 @@ r"""Recon: разовый сбор реальной структуры Ozon, ч�
     product.png  / reviews.png  — скриншоты
 Подробный лог: logs/recon.log (читается в UTF-8, даже если консоль коверкает кириллицу).
 """
+import argparse
 import asyncio
 import logging
 import sys
@@ -140,10 +141,8 @@ async def run(url: str, headless: bool):
 
 
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    headless = "--headless" in args
-    args = [a for a in args if a != "--headless"]
-    if not args:
-        log.error("Укажи ссылку. Пример: python scripts/recon.py \"https://ozon.ru/t/nPDyAby\"")
-        sys.exit(1)
-    asyncio.run(run(args[0], headless))
+    p = argparse.ArgumentParser(description="Recon: сохраняет сырые ответы Ozon в captures/.")
+    p.add_argument("url", help="ссылка на товар")
+    p.add_argument("--headless", action="store_true", help="без окна браузера")
+    a = p.parse_args()
+    asyncio.run(run(a.url, a.headless))

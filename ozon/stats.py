@@ -6,8 +6,9 @@
 текста — тоже сигнал. `covered` показывает, покрывает ли выборка всё окно (есть ли
 отзыв старше начала окна); если нет — цифры окна смещены к свежим.
 """
-_DAY = 86_400
-_WINDOWS_DAYS = (30, 90, 180, 365)
+from . import config
+
+_DAY = 86_400   # секунд в сутках: работаем с unix-таймстампами, DST на них не влияет
 
 
 def _rating(raw: dict):
@@ -26,8 +27,9 @@ def _has_text(raw: dict) -> bool:
                 or (c.get("negative") or "").strip())
 
 
-def compute_stats(raw_reviews, overall_score, overall_total, now, windows_days=_WINDOWS_DAYS) -> dict:
+def compute_stats(raw_reviews, overall_score, overall_total, now, windows_days=None) -> dict:
     """Сводка по сырым отзывам Ozon. `now` — tz-aware datetime (инъектируется в тестах)."""
+    windows_days = windows_days or config.STATS_WINDOWS_DAYS
     raws = list(raw_reviews)
     now_ts = int(now.timestamp())
 

@@ -23,7 +23,7 @@ CLI-утилита для сбора отзывов о товарах [Ozon](htt
 
 ```powershell
 py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -e .
 ```
 
 На macOS/Linux — то же самое через `python3 -m venv .venv` и `.venv/bin/python`.
@@ -34,7 +34,7 @@ py -m venv .venv
 
 ```powershell
 # Все варианты, отзывы за год (по умолчанию)
-.\.venv\Scripts\python.exe main.py "https://ozon.ru/t/xxxxxxx"
+.\.venv\Scripts\python.exe main.py "<ссылка на товар>"
 
 # Только вариант из ссылки (когда под карточкой собраны разные товары)
 .\.venv\Scripts\python.exe main.py "<ссылка>" --this-variant
@@ -43,7 +43,7 @@ py -m venv .venv
 .\.venv\Scripts\python.exe main.py -f urls.txt
 
 # Самопроверка парсинга: сразу видно, какой блок перестал отдаваться
-.\.venv\Scripts\python.exe main.py --doctor
+.\.venv\Scripts\python.exe main.py "<ссылка>" --doctor
 ```
 
 | Флаг | Назначение |
@@ -54,7 +54,7 @@ py -m venv .venv
 | `--headless` | без окна браузера (на Ozon обычно блокируется) |
 | `--output-dir DIR` | куда писать JSON (по умолчанию `output/`) |
 | `--fresh-profile` | удалить сохранённый профиль браузера перед запуском (если сессия испортилась) |
-| `--doctor` | самопроверка парсинга на эталонном товаре (или переданной ссылке); печатает PASS/WARN/FAIL по секциям |
+| `--doctor` | самопроверка парсинга по переданной ссылке; печатает PASS/WARN/FAIL по секциям |
 
 Окно Chrome по умолчанию видимое — это необходимо: в headless-режиме Ozon обычно показывает страницу проверки.
 
@@ -153,14 +153,17 @@ tests/         офлайн-тесты и обезличенные реальн�
 ```
 
 Всё, что зависит от структуры сайта Ozon (пути, имена виджетов, параметры сортировок),
-собрано в `ozon/api.py` и `ozon/parse.py` — при изменениях на стороне Ozon правятся они.
+собрано в `ozon/api.py` — при изменениях на стороне Ozon правится он.
+Все параметры поведения (паузы, лимиты пагинации, окна статистики, ожидание капчи,
+таймзона дат) вынесены в `ozon/config.py` с объяснением, откуда взято каждое значение.
+Ссылок на конкретные товары в коде нет — товар всегда задаёт пользователь.
 
 ## Тесты
 
 Чистая логика парсинга и фильтрации покрыта офлайн-тестами (`tests/`, pytest) — сеть и браузер не нужны:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pip install -e .[dev]
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
