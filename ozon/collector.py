@@ -15,8 +15,7 @@ import asyncio
 import random
 from datetime import datetime
 
-import config
-from . import api, parse
+from . import api, config, parse
 from .errors import BootstrapError
 from .logging_setup import get_logger
 from .stats import compute_stats

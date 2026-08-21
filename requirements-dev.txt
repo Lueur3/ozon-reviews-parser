@@ -1,2 +1,2 @@
--r requirements.txt
-pytest>=8.0
+# Проект + инструменты разработки (pytest). Версии — в pyproject.toml.
+-e .[dev]

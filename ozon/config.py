@@ -26,8 +26,8 @@ DOCTOR_MAX_REVIEWS = 20      # лёгкий сбор — проверке хва
 # Логирование
 LOG_LEVEL = logging.INFO
 
-# Пути
-BASE_DIR = Path(__file__).resolve().parent
+# Пути (BASE_DIR — корень проекта, на уровень выше пакета)
+BASE_DIR = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = BASE_DIR / "output"     # сюда пишутся {product_id}.json
 PROFILE_DIR = BASE_DIR / ".profile"  # сохранённая сессия/cookie браузера
 LOG_DIR = BASE_DIR / "logs"          # logs/reviews.log

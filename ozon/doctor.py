@@ -5,7 +5,7 @@
 """
 import asyncio
 
-import config
+from . import config
 
 
 def check_health(meta: dict, reviews: list, min_chars: int = config.DOCTOR_MIN_CHARS) -> list:

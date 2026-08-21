@@ -6,7 +6,7 @@
 """
 import logging
 
-import config
+from . import config
 
 _configured = False
 

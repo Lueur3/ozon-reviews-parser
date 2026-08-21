@@ -3,7 +3,7 @@ import asyncio
 import random
 import time
 
-import config
+from . import config
 from .browser import launch_browser
 from .collector import ReviewCollector
 from .logging_setup import get_logger

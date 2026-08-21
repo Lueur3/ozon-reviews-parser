@@ -11,7 +11,7 @@ from pathlib import Path
 
 from patchright.async_api import async_playwright
 
-import config
+from . import config
 from .errors import BrowserNotFound
 from .logging_setup import get_logger
 

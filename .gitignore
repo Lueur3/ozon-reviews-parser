@@ -8,5 +8,7 @@ logs/
 *.log
 .pytest_cache/
 
-# AI-инструкции, не часть утилиты
-CLAUDE.md
+# сборка пакета
+*.egg-info/
+build/
+dist/
