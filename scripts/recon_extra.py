@@ -9,32 +9,14 @@ r"""Recon для цены, характеристик и вопросов/отв
 (layout-компоненты + ключи widgetStates) в captures/extra/_widgets.txt —
 по ней найдём, где цена, характеристики и Q&A.
 """
+import argparse
 import asyncio
 import json
-import sys
-from pathlib import Path
-from urllib.parse import quote, urlparse
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+from _common import CAPTURES, api, open_session, utf8_stdout
 
-from ozon.browser import launch_browser
-from ozon.urls import extract_product_id
-
-API = "/api/entrypoint-api.bx/page/json/v2?url="
-DROP = {"host", "cookie", "content-length", "accept-encoding", "connection",
-        "user-agent", "origin", "referer"}
-FETCH_JS = """async ({u, h}) => {
-    const r = await fetch(u, {headers: h, credentials: 'include'});
-    return await r.text();
-}"""
-
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
-
-EXTRA = ROOT / "captures" / "extra"
+utf8_stdout()
+EXTRA = CAPTURES / "extra"
 
 
 def widget_map(data: dict) -> list[str]:
@@ -50,50 +32,21 @@ def widget_map(data: dict) -> list[str]:
     return out
 
 
-async def main(url: str):
+async def recon(url: str):
     EXTRA.mkdir(parents=True, exist_ok=True)
-    state = {"headers": None}
-    pending = []
-
-    async def on_response(resp):
-        try:
-            if "entrypoint-api" in resp.url and state["headers"] is None:
-                if "json" in resp.headers.get("content-type", ""):
-                    hh = await resp.request.all_headers()
-                    state["headers"] = {k: v for k, v in hh.items()
-                                        if k.lower() not in DROP and not k.startswith(":")}
-        except Exception:
-            pass
-
-    def schedule(resp):
-        pending.append(asyncio.ensure_future(on_response(resp)))
-
     report = []
-    async with launch_browser(headless=False) as (context, page):
-        page.on("response", schedule)
-        print("Открываю:", url)
-        await page.goto(url, wait_until="domcontentloaded")
-        await page.wait_for_timeout(3500)
-        if pending:
-            await asyncio.gather(*pending, return_exceptions=True)
-        resolved = page.url
-        pid = extract_product_id(resolved)
-        ppath = urlparse(resolved).path
-        if not ppath.endswith("/"):
-            ppath += "/"
-        origin = f"{urlparse(resolved).scheme}://{urlparse(resolved).netloc}"
-        headers = state["headers"] or {}
-        print(f"id={pid} | заголовки API: {'есть' if headers else 'НЕТ'}")
+    print("Открываю:", url)
+    async with open_session(url) as s:
+        print(f"id={s.product_id} | заголовки API: {'есть' if s.client.headers else 'НЕТ'}")
 
         async def fetch_dump(param, label):
-            api = origin + API + quote(param, safe="")
             try:
-                text = await page.evaluate(FETCH_JS, {"u": api, "h": headers})
-                data = json.loads(text)
+                data = await s.fetch(param)
             except Exception as e:
                 print(f"[{label}] ошибка: {e!r}")
                 report.append(f"### {label}  ({param})\n  ОШИБКА: {e!r}")
                 return None
+            text = json.dumps(data, ensure_ascii=False)
             (EXTRA / f"{label}.json").write_text(text, encoding="utf-8")
             keys = widget_map(data)
             report.append(f"### {label}  ({param})  [{len(text)} байт]\n" + "\n".join(keys))
@@ -101,11 +54,10 @@ async def main(url: str):
             return data
 
         # карточка (цена/артикул/краткие характеристики), полные характеристики, вопросы
+        ppath = s.ppath
         await fetch_dump(ppath, "product")
-        await fetch_dump(ppath + "features/", "features")
+        await fetch_dump(api.features_path(ppath), "features")
         await fetch_dump(ppath + "questions/", "questions")
-
-        page.remove_listener("response", schedule)
 
     (EXTRA / "_widgets.txt").write_text("\n\n".join(report), encoding="utf-8")
     print("\nКарта виджетов: captures/extra/_widgets.txt")
@@ -113,8 +65,6 @@ async def main(url: str):
 
 
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    if not args:
-        print('Укажи ссылку: python scripts/recon_extra.py "https://ozon.ru/t/nPDyAby"')
-        sys.exit(1)
-    asyncio.run(main(args[0]))
+    p = argparse.ArgumentParser(description="Recon карточки, характеристик и вопросов.")
+    p.add_argument("url", help="ссылка на товар")
+    asyncio.run(recon(p.parse_args().url))

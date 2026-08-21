@@ -13,37 +13,18 @@ import asyncio
 import json
 import re
 import sys
-from pathlib import Path
 from urllib.parse import urlparse
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+from _common import CAPTURES, api, launch_browser, utf8_stdout
 
-from ozon.browser import launch_browser
+from ozon import parse
 
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
-
-QA = ROOT / "captures" / "qa"
-
-
-def widget_states(data):
-    out = {}
-    for k, v in (data.get("widgetStates") or {}).items():
-        if isinstance(v, str):
-            try:
-                out[k] = json.loads(v)
-            except Exception:
-                pass
-        elif isinstance(v, dict):
-            out[k] = v
-    return out
+utf8_stdout()
+QA = CAPTURES / "qa"
 
 
 def qcount(data):
-    for k, w in widget_states(data).items():
+    for k, w in parse._widget_states(data).items():   # тот же разбор, что и в проде
         if k.startswith("webListQuestions"):
             qs = w.get("questions")
             return len(qs) if isinstance(qs, (list, dict)) else 0
@@ -90,9 +71,8 @@ async def main(url):
         await page.goto(url, wait_until="domcontentloaded")
         await page.wait_for_timeout(3000)
         await drain()
-        pr = urlparse(page.url)
-        ppath = pr.path if pr.path.endswith("/") else pr.path + "/"
-        qurl = f"{pr.scheme}://{pr.netloc}{ppath}questions/?qsort=has_answers_desc"
+        ppath = api.product_path(page.url)
+        qurl = api.origin_of(page.url) + f"{ppath}questions/?qsort={api.QUESTIONS_SORT}"
         print("Открываю вопросы:", qurl)
         await page.goto(qurl, wait_until="domcontentloaded")
         await page.wait_for_timeout(3500)

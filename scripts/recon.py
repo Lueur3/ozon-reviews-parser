@@ -17,23 +17,15 @@ r"""Recon: разовый сбор реальной структуры Ozon, ч�
 import asyncio
 import logging
 import sys
-from pathlib import Path
 from urllib.parse import urlparse, urlunparse
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+from _common import CAPTURES as CAP, LOGS, launch_browser, utf8_stdout
 
-from ozon.browser import launch_browser
 from ozon.urls import extract_product_id
 
-CAP = ROOT / "captures"
-LOGS = ROOT / "logs"
 REVIEW_HINTS = ("review", "comment", "otzyv", "feedback")
 
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
+utf8_stdout()
 
 
 def setup_logging():

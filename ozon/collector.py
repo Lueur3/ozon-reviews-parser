@@ -12,45 +12,21 @@
 а шаги — в методах; точка входа — collect().
 """
 import asyncio
-import json
 import random
 from datetime import datetime
-from urllib.parse import quote, urlparse
 
 import config
-from . import parse
-from .errors import BootstrapError, CaptchaTimeout
+from . import api, parse
+from .errors import BootstrapError
 from .logging_setup import get_logger
 from .stats import compute_stats
 from .urls import extract_product_id
 
-_API_PATH = "/api/entrypoint-api.bx/page/json/v2?url="
-_HEADER_SCROLLS = 12
-_MAX_FETCH_PAGES = 4000
-_EMPTY_LIMIT = 8
-_VARIANT_MODE = "reviewsVariantMode=2"  # все варианты (фильтр по варианту делаем сами)
-_DROP_HEADERS = {"host", "cookie", "content-length", "accept-encoding", "connection",
-                 "user-agent", "origin", "referer"}
-
-_CAPTCHA_WAIT_ITERS = 75   # ~5 минут (по 4 с) ждём, пока пользователь решит капчу в окне
-_FETCH_JS = """async ({u, h}) => {
-    const r = await fetch(u, {headers: h, credentials: 'include'});
-    return {status: r.status, text: await r.text()};
-}"""
+_HEADER_SCROLLS = 12       # прокруток карточки, чтобы поймать запрос к API и курсор полки
+_MAX_FETCH_PAGES = 4000    # предохранитель от бесконечной пагинации (~120к отзывов)
+_EMPTY_LIMIT = 8           # страниц без новых uuid подряд = конец ленты (терпим дубли)
 
 log = get_logger("ozon.collector")
-
-
-def _origin(url: str) -> str:
-    pr = urlparse(url)
-    return f"{pr.scheme}://{pr.netloc}"
-
-
-def _reviews_path(resolved_url: str) -> str:
-    path = urlparse(resolved_url).path
-    if not path.endswith("/"):
-        path += "/"
-    return path + "reviews/"
 
 
 def _is_empty(rev) -> bool:
@@ -85,6 +61,7 @@ class ReviewCollector:
         self.origin = ""
         self.rpath = ""    # путь ленты отзывов /product/.../reviews/
         self.ppath = ""    # путь карточки /product/.../
+        self.client = None  # OzonClient — создаётся после bootstrap, когда есть заголовки
 
     # ------------------------------------------------------------------ #
     # Точка входа
@@ -132,12 +109,9 @@ class ReviewCollector:
             await self._drain()
             self.page.remove_listener("response", schedule)
 
-        self.origin = _origin(self.resolved_url)
-        self.rpath = _reviews_path(self.resolved_url)
-        ppath = urlparse(self.resolved_url).path
-        if not ppath.endswith("/"):
-            ppath += "/"
-        self.ppath = ppath
+        self.origin = api.origin_of(self.resolved_url)
+        self.ppath = api.product_path(self.resolved_url)
+        self.rpath = api.reviews_path(self.resolved_url)
         try:
             self.pid_int = int(self.product_id)
         except (TypeError, ValueError):
@@ -152,6 +126,9 @@ class ReviewCollector:
                 "не удалось снять заголовки внутреннего API Ozon с живой сессии. "
                 "Вероятно: страница не загрузилась, VPN включён, или Ozon сменил эндпоинт. "
                 f"Итоговый URL: {self.resolved_url or self.url}")
+
+        self.client = api.OzonClient(self.page, self.origin, self.headers,
+                                     recovery_url=self.resolved_url)
 
     def _absorb(self, data: dict) -> int:
         """Вынуть отзывы из webListReviews в reviews_by_uuid; вернуть число новых."""
@@ -180,9 +157,7 @@ class ReviewCollector:
             if "entrypoint-api" not in resp.url and "composer-api" not in resp.url:
                 return
             if "entrypoint-api" in resp.url and self.headers is None:
-                hh = await resp.request.all_headers()
-                self.headers = {k: v for k, v in hh.items()
-                                if k.lower() not in _DROP_HEADERS and not k.startswith(":")}
+                self.headers = api.session_headers(await resp.request.all_headers())
             data = await resp.json()
         except Exception as e:
             # Ответ мог быть отменён/не-JSON — это штатно, но причину пишем в лог,
@@ -201,52 +176,20 @@ class ReviewCollector:
             self._pending.clear()
 
     # ------------------------------------------------------------------ #
-    # Сетевой fetch (через контекст страницы)
-    # ------------------------------------------------------------------ #
-    async def _fetch(self, param: str) -> dict:
-        """GET entrypoint-api JSON в контексте страницы. При капче/блоке ждёт решения и повторяет."""
-        api = self.origin + _API_PATH + quote(param, safe="")
-        waited = False
-        reason = "неизвестно"
-        for _ in range(_CAPTCHA_WAIT_ITERS):
-            try:
-                res = await self.page.evaluate(_FETCH_JS, {"u": api, "h": self.headers})
-                if isinstance(res, dict) and res.get("status") == 200:
-                    return json.loads(res["text"])
-                reason = f"HTTP {res.get('status') if isinstance(res, dict) else '?'}"
-            except json.JSONDecodeError as e:
-                reason = f"ответ не JSON ({e})"          # обычно HTML страницы капчи
-            except Exception as e:
-                reason = repr(e)                          # сеть/страница закрыта/JS упал
-            log.debug("fetch %s не удался: %s", param, reason)
-            if not waited:
-                print(">>> Капча/блокировка Ozon. Реши капчу в открытом окне Chrome — "
-                      "жду и продолжу сам...")
-                log.warning("captcha/block (%s): жду решения пользователя в окне", reason)
-                try:
-                    await self.page.goto(self.resolved_url, wait_until="domcontentloaded")
-                except Exception as e:
-                    log.warning("не удалось открыть страницу для капчи: %r", e)
-                waited = True
-            await self.page.wait_for_timeout(4000)
-        raise CaptchaTimeout(
-            f"за {_CAPTCHA_WAIT_ITERS * 4 // 60} мин доступ не восстановился "
-            f"(последняя причина: {reason}). Проверь VPN и решённую капчу в окне Chrome.")
-
-    # ------------------------------------------------------------------ #
     # Доп. данные карточки
     # ------------------------------------------------------------------ #
     async def _collect_extras(self):
         """(price, characteristics): карточка (краткие) + /features/ (полные)."""
         price, characteristics = {}, {}
         try:
-            pdata = await self._fetch(self.ppath)
+            pdata = await self.client.fetch(self.ppath)
             price = parse.parse_price(pdata)
             characteristics = parse.parse_characteristics(pdata)
         except Exception as e:
             log.warning("карточка (цена/характеристики) не получена: %r", e)
         try:
-            full = parse.parse_characteristics(await self._fetch(self.ppath + "features/"))
+            full = parse.parse_characteristics(
+                await self.client.fetch(api.features_path(self.ppath)))
             if len(full) > len(characteristics):
                 characteristics = full
         except Exception as e:
@@ -262,7 +205,7 @@ class ReviewCollector:
         seen_q = set()
         for page_n in range(1, max_pages + 1):
             try:
-                qdata = await self._fetch(f"{self.ppath}questions/?qsort=has_answers_desc&page={page_n}")
+                qdata = await self.client.fetch(api.questions_page(self.ppath, page_n))
             except Exception as e:
                 log.warning("вопросы: страница %d не получена: %r", page_n, e)
                 break
@@ -275,7 +218,8 @@ class ReviewCollector:
                 if q.get("_has_more") and q.get("_id"):
                     try:
                         full = parse.parse_questions(
-                            await self._fetch(f"{self.ppath}question/{q['_id']}/"), answered_only=False)
+                            await self.client.fetch(api.question_page(self.ppath, q["_id"])),
+                            answered_only=False)
                         if full and len(full[0]["answers"]) > len(q["answers"]):
                             q["answers"] = full[0]["answers"]
                     except Exception as e:
@@ -297,7 +241,7 @@ class ReviewCollector:
                 log.info("[%s] stop: лимит набран", label)
                 return "limit"
             try:
-                data = await self._fetch(param)
+                data = await self.client.fetch(param)
             except Exception as e:
                 log.warning("[%s] fetch упал: %r", label, e)
                 return "error"
@@ -323,7 +267,7 @@ class ReviewCollector:
     async def _collect_review_feed(self):
         """Основная лента /reviews/, затем фолбэк на полку или добор сортировками по оценке."""
         before_deep = len(self.reviews_by_uuid)
-        deep = f"{self.rpath}?sort=published_at_desc&{_VARIANT_MODE}"
+        deep = api.reviews_feed(self.rpath, api.SORT_NEWEST)
         await self._run_cursor(deep, "reviews", date_sorted=True)
         # непредвзятая хронологическая выборка для статистики (до доборов по оценке)
         self._chrono_uuids = set(self.reviews_by_uuid)
@@ -336,8 +280,8 @@ class ReviewCollector:
         else:
             # добор сортировками по оценке: каждая отдаёт свой срез (~+50% уникальных в окне),
             # заодно гарантирует негатив и позитив. Анонимно лента ограничена ~990 на сортировку.
-            for srt, label in (("score_asc", "low"), ("score_desc", "high")):
-                await self._run_cursor(f"{self.rpath}?sort={srt}&{_VARIANT_MODE}", label, date_sorted=False)
+            for srt, label in ((api.SORT_SCORE_ASC, "low"), (api.SORT_SCORE_DESC, "high")):
+                await self._run_cursor(api.reviews_feed(self.rpath, srt), label, date_sorted=False)
 
     # ------------------------------------------------------------------ #
     # Результат
