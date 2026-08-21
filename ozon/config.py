@@ -8,6 +8,7 @@ Ozon изменит поведение, менять нужно одно мес�
 пользователь аргументом командной строки.
 """
 import logging
+import random
 from pathlib import Path
 
 # --- что собираем ----------------------------------------------------------
@@ -73,3 +74,27 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = BASE_DIR / "output"     # сюда пишутся {product_id}.json
 PROFILE_DIR = BASE_DIR / ".profile"  # сохранённая сессия/cookie браузера
 LOG_DIR = BASE_DIR / "logs"          # logs/reviews.log
+
+
+def delay_ms(bounds: tuple[float, float]) -> float:
+    """Случайная пауза из диапазона (секунды) в миллисекундах — их ждёт Playwright."""
+    return random.uniform(*bounds) * 1000
+
+
+def _validate() -> None:
+    """Ловит опечатку в настройках при импорте, а не через полчаса сбора."""
+    for name in ("PAGE_DELAY", "FETCH_DELAY", "PRODUCT_DELAY"):
+        lo, hi = globals()[name]
+        if not 0 <= lo <= hi:
+            raise ValueError(f"config.{name}: ожидалось 0 <= min <= max, получено {(lo, hi)}")
+    positive = ("REVIEW_PERIOD_DAYS", "MAX_REVIEWS_PER_PRODUCT", "COLLECT_OVERSHOOT",
+                "QUESTION_PAGES", "HEADER_SCROLLS", "MAX_FETCH_PAGES", "EMPTY_PAGES_LIMIT",
+                "CAPTCHA_WAIT_ITERS", "CAPTCHA_POLL_MS", "NAV_TIMEOUT_MS")
+    for name in positive:
+        if globals()[name] <= 0:
+            raise ValueError(f"config.{name}: ожидалось положительное число, получено {globals()[name]}")
+    if not STATS_WINDOWS_DAYS or any(d <= 0 for d in STATS_WINDOWS_DAYS):
+        raise ValueError(f"config.STATS_WINDOWS_DAYS: только положительные дни, получено {STATS_WINDOWS_DAYS}")
+
+
+_validate()

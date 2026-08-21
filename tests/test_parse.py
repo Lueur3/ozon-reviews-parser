@@ -12,7 +12,7 @@ def test_widget_states_decodes_string_and_keeps_dict():
         "asDict": {"b": 2},
         "broken": "{not json",
     }}
-    ws = parse._widget_states(data)
+    ws = parse.widget_states(data)
     assert ws["asString"] == {"a": 1}
     assert ws["asDict"] == {"b": 2}
     assert "broken" not in ws  # битый JSON пропускается

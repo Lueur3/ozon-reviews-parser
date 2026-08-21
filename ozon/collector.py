@@ -12,11 +12,10 @@
 а шаги — в методах; точка входа — collect().
 """
 import asyncio
-import random
 from datetime import datetime
 
 from . import api, config, parse
-from .errors import BootstrapError
+from .errors import BootstrapError, CaptchaTimeout
 from .logging_setup import get_logger
 from .stats import compute_stats
 from .urls import extract_product_id
@@ -98,7 +97,7 @@ class ReviewCollector:
                 if self.headers and self.shelf_next:
                     break
                 await self.page.mouse.wheel(0, config.SCROLL_STEP_PX)
-                await self.page.wait_for_timeout(random.uniform(*self.page_delay) * 1000)
+                await self.page.wait_for_timeout(config.delay_ms(self.page_delay))
                 await self._drain()
         finally:
             await self._drain()
@@ -180,6 +179,8 @@ class ReviewCollector:
             pdata = await self.client.fetch(self.ppath)
             price = parse.parse_price(pdata)
             characteristics = parse.parse_characteristics(pdata)
+        except CaptchaTimeout:
+            raise                     # сессия мертва — дальше каждый fetch ждал бы ещё 5 мин
         except Exception as e:
             log.warning("карточка (цена/характеристики) не получена: %r", e)
         try:
@@ -187,6 +188,8 @@ class ReviewCollector:
                 await self.client.fetch(api.features_path(self.ppath)))
             if len(full) > len(characteristics):
                 characteristics = full
+        except CaptchaTimeout:
+            raise
         except Exception as e:
             log.warning("features (полные характеристики) не получены: %r", e)
         return price, characteristics
@@ -201,6 +204,8 @@ class ReviewCollector:
         for page_n in range(1, max_pages + 1):
             try:
                 qdata = await self.client.fetch(api.questions_page(self.ppath, page_n))
+            except CaptchaTimeout:
+                raise
             except Exception as e:
                 log.warning("вопросы: страница %d не получена: %r", page_n, e)
                 break
@@ -217,6 +222,8 @@ class ReviewCollector:
                             answered_only=False)
                         if full and len(full[0]["answers"]) > len(q["answers"]):
                             q["answers"] = full[0]["answers"]
+                    except CaptchaTimeout:
+                        raise
                     except Exception as e:
                         log.warning("вопрос %s: доп.ответы не получены: %r", q.get("_id"), e)
                 q.pop("_id", None)
@@ -237,6 +244,8 @@ class ReviewCollector:
                 return "limit"
             try:
                 data = await self.client.fetch(param)
+            except CaptchaTimeout:
+                raise
             except Exception as e:
                 log.warning("[%s] fetch упал: %r", label, e)
                 return "error"
@@ -256,7 +265,7 @@ class ReviewCollector:
                 log.info("[%s] stop: %d страниц без новых (стена анонима/конец)", label, config.EMPTY_PAGES_LIMIT)
                 return "end"
             param = data.get("nextPage")
-            await self.page.wait_for_timeout(random.uniform(*config.FETCH_DELAY) * 1000)
+            await self.page.wait_for_timeout(config.delay_ms(config.FETCH_DELAY))
         return "end"
 
     async def _collect_review_feed(self):

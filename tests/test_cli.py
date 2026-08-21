@@ -66,3 +66,9 @@ def test_guarded_lets_unknown_errors_through():
         raise ValueError("неожиданная ошибка")
     with pytest.raises(ValueError):
         guarded(boom)
+
+
+def test_profile_dir_flag():
+    a = parse_args(["<url>", "--profile-dir", "/tmp/ozon_profile"])
+    assert a.profile_dir == Path("/tmp/ozon_profile")
+    assert parse_args(["<url>"]).profile_dir == config.PROFILE_DIR

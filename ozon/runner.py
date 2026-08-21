@@ -1,6 +1,5 @@
 """Оркестрация: браузер -> сбор отзывов -> сохранение JSON."""
 import asyncio
-import random
 import time
 
 from . import config
@@ -20,10 +19,11 @@ def _report(msg: str) -> None:
 
 
 async def _run_async(urls, period_days, all_variants, headless, max_reviews,
-                     output_dir=None, fresh_profile=False):
+                     output_dir=None, profile_dir=None, fresh_profile=False):
     output_dir = output_dir or config.OUTPUT_DIR
     started = time.perf_counter()
-    async with launch_browser(headless=headless, fresh_profile=fresh_profile) as (context, page):
+    async with launch_browser(headless=headless, fresh_profile=fresh_profile,
+                              profile_dir=profile_dir or config.PROFILE_DIR) as (context, page):
         for i, url in enumerate(urls):
             mode = "все варианты" if all_variants else "только этот вариант"
             _report(f"[{i + 1}/{len(urls)}] {url} ({mode}) — собираю отзывы...")
@@ -71,13 +71,14 @@ async def _run_async(urls, period_days, all_variants, headless, max_reviews,
                 _report("    отзывов по этому варианту не найдено — попробуй без флага --this-variant")
 
             if i + 1 < len(urls):
-                await page.wait_for_timeout(random.uniform(*config.PRODUCT_DELAY) * 1000)
+                await page.wait_for_timeout(config.delay_ms(config.PRODUCT_DELAY))
 
         if len(urls) > 1:
             _report(f"Готово: {len(urls)} товаров за {time.perf_counter() - started:.1f} с")
 
 
 def run(urls, period_days, all_variants, headless, max_reviews,
-        output_dir=None, fresh_profile=False):
+        output_dir=None, profile_dir=None, fresh_profile=False):
     asyncio.run(_run_async(urls, period_days, all_variants, headless, max_reviews,
-                           output_dir=output_dir, fresh_profile=fresh_profile))
+                           output_dir=output_dir, profile_dir=profile_dir,
+                           fresh_profile=fresh_profile))

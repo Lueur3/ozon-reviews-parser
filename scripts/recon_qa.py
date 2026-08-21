@@ -9,10 +9,10 @@ r"""Recon пагинации вопросов-ответов (Q&A).
 и captures/qa/_index.txt: статус, число вопросов, есть ли nextPage, URL.
 По индексу поймём, как именно листается лента вопросов.
 """
+import argparse
 import asyncio
 import json
 import re
-import sys
 from urllib.parse import urlparse
 
 from _common import CAPTURES, api, launch_browser, utf8_stdout
@@ -24,7 +24,7 @@ QA = CAPTURES / "qa"
 
 
 def qcount(data):
-    for k, w in parse._widget_states(data).items():   # тот же разбор, что и в проде
+    for k, w in parse.widget_states(data).items():   # тот же разбор, что и в проде
         if k.startswith("webListQuestions"):
             qs = w.get("questions")
             return len(qs) if isinstance(qs, (list, dict)) else 0
@@ -96,7 +96,6 @@ async def main(url):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print('нужна ссылка: python scripts/recon_qa.py "<ссылка на товар>"')
-        sys.exit(1)
-    asyncio.run(main(sys.argv[1]))
+    p = argparse.ArgumentParser(description="Recon пагинации вопросов-ответов (Q&A).")
+    p.add_argument("url", help="ссылка на товар")
+    asyncio.run(main(p.parse_args().url))

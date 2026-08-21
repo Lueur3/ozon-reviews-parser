@@ -18,7 +18,7 @@ log = get_logger("ozon.parse")
 _TZ = tz.gettz(config.TIMEZONE) or tz.UTC
 
 
-def _widget_states(data: dict) -> dict:
+def widget_states(data: dict) -> dict:
     out = {}
     for k, v in (data.get("widgetStates") or {}).items():
         if isinstance(v, str):
@@ -34,7 +34,7 @@ def _widget_states(data: dict) -> dict:
 
 def extract_reviews_widget(data: dict):
     """Из webListReviews возвращает (reviews_raw, products, score, total) или None."""
-    for k, w in _widget_states(data).items():
+    for k, w in widget_states(data).items():
         if k.startswith(api.WIDGET_REVIEWS) and isinstance(w, dict) and "reviews" in w:
             return (
                 w.get("reviews") or [],
@@ -46,7 +46,7 @@ def extract_reviews_widget(data: dict):
 
 
 def _find_widget(data: dict, prefix: str):
-    for k, w in _widget_states(data).items():
+    for k, w in widget_states(data).items():
         if k.startswith(prefix):
             return w
     return None
@@ -54,7 +54,7 @@ def _find_widget(data: dict, prefix: str):
 
 def parse_price(data: dict) -> dict:
     """Из виджета webPrice-<id> (не webPriceDecreasedCompact и подобных)."""
-    for k, w in _widget_states(data).items():
+    for k, w in widget_states(data).items():
         if not (k.startswith(api.WIDGET_PRICE) and isinstance(w, dict)):
             continue
         if not (w.get("price") or w.get("cardPrice")):
@@ -85,7 +85,7 @@ def _chars_from_webchar(w) -> dict:
 def parse_characteristics(data: dict) -> dict:
     """{название: значение}. На /features/ несколько webCharacteristics — берём самый полный."""
     best = {}
-    for k, w in _widget_states(data).items():
+    for k, w in widget_states(data).items():
         if k.startswith(api.WIDGET_CHARACTERISTICS):
             c = _chars_from_webchar(w)
             if len(c) > len(best):
@@ -105,8 +105,8 @@ def parse_characteristics(data: dict) -> dict:
     return best
 
 
-def _question_widget(data: dict):
-    for k, w in _widget_states(data).items():
+def question_widget(data: dict):
+    for k, w in widget_states(data).items():
         if k.startswith(api.WIDGET_QUESTIONS) and isinstance(w, dict):
             return w
     st = data.get("state")
@@ -123,7 +123,7 @@ def _question_widget(data: dict):
 
 def parse_questions(data: dict, answered_only: bool = True) -> list:
     """Список вопросов с ответами: [{author, text, date, answers:[{author,text,date,is_best}]}]."""
-    w = _question_widget(data)
+    w = question_widget(data)
     if not w:
         return []
     questions = w.get("questions") or {}

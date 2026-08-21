@@ -30,7 +30,7 @@ async def recon(url: str):
         target, widget = None, None
         for page_n in range(1, 10):
             qd = await s.fetch(api.questions_page(ppath, page_n))
-            ww = parse._question_widget(qd)      # тот же разбор, что и в проде
+            ww = parse.question_widget(qd)      # тот же разбор, что и в проде
             if not ww:
                 report.append(f"page {page_n}: нет webListQuestions")
                 break
@@ -55,7 +55,7 @@ async def recon(url: str):
             qpage = await s.fetch(api.question_page(ppath, target))
             (QA / "question_page.json").write_text(
                 json.dumps(qpage, ensure_ascii=False) if qpage else "null", encoding="utf-8")
-            qw = parse._question_widget(qpage)
+            qw = parse.question_widget(qpage)
             if qw:
                 report.append(f"на странице /question/{target}/: "
                               f"questions={len(qw.get('questions') or {})}, "

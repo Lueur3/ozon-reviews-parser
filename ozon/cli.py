@@ -43,6 +43,8 @@ def parse_args(argv=None):
                    help="самопроверка парсинга по переданной ссылке: печатает PASS/WARN/FAIL по секциям")
     p.add_argument("--output-dir", type=Path, default=config.OUTPUT_DIR,
                    help=f"куда писать JSON (по умолчанию {config.OUTPUT_DIR.name}/)")
+    p.add_argument("--profile-dir", type=Path, default=config.PROFILE_DIR,
+                   help=f"где хранить профиль браузера (по умолчанию {config.PROFILE_DIR.name}/)")
     p.add_argument("--fresh-profile", action="store_true",
                    help="удалить сохранённый профиль браузера перед запуском "
                         "(если сессия испортилась: залипла капча, забанен отпечаток)")
@@ -65,6 +67,7 @@ def main(argv=None):
             raise SystemExit("Для --doctor нужна ссылка на товар: main.py --doctor \"<ссылка>\"")
         from .doctor import run_doctor
         raise SystemExit(guarded(lambda: run_doctor(args.url,
+                                                    profile_dir=args.profile_dir,
                                                     fresh_profile=args.fresh_profile)))
 
     if not (args.url or args.file):
@@ -81,6 +84,7 @@ def main(argv=None):
         headless=args.headless,
         max_reviews=args.max,
         output_dir=args.output_dir,
+        profile_dir=args.profile_dir,
         fresh_profile=args.fresh_profile,
     )))
 
