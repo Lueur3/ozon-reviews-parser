@@ -18,6 +18,7 @@ from .logging_setup import get_logger
 log = get_logger("ozon.api")
 
 # --- адреса и параметры Ozon ------------------------------------------------
+BASE_URL = "https://www.ozon.ru"             # нужен, чтобы собрать ссылку по артикулу
 API_PATH = "/api/entrypoint-api.bx/page/json/v2?url="
 VARIANT_MODE = "reviewsVariantMode=2"        # отдать отзывы всех вариантов товара
 SORT_NEWEST = "published_at_desc"
