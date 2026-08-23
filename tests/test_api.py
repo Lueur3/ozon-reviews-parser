@@ -7,13 +7,13 @@ import pytest
 from ozon import api
 from ozon.errors import CaptchaTimeout
 
-URL = "https://www.ozon.ru/product/tovar-138342427/?from=share"
+URL = "https://www.ozon.ru/product/tovar-1234567890/?from=share"
 
 
 def test_path_builders():
     assert api.origin_of(URL) == "https://www.ozon.ru"
-    assert api.product_path(URL) == "/product/tovar-138342427/"
-    assert api.reviews_path(URL) == "/product/tovar-138342427/reviews/"
+    assert api.product_path(URL) == "/product/tovar-1234567890/"
+    assert api.reviews_path(URL) == "/product/tovar-1234567890/reviews/"
     assert api.features_path("/product/x-1/") == "/product/x-1/features/"
     assert api.question_page("/product/x-1/", 42) == "/product/x-1/question/42/"
 

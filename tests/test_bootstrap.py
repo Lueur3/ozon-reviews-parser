@@ -11,7 +11,7 @@ import pytest
 from ozon.collector import ReviewCollector
 from ozon.errors import BootstrapError
 
-URL = "https://www.ozon.ru/product/tovar-138342427/"
+URL = "https://www.ozon.ru/product/tovar-1234567890/"
 
 
 class _Mouse:
@@ -56,8 +56,8 @@ def test_bootstrap_sets_paths_when_headers_captured():
     c = _collector(FakePage())
     c.headers = {"x-o3-app-name": "dweb_client"}   # как будто перехватили из сессии
     asyncio.run(c._bootstrap())
-    assert c.product_id == "138342427"
-    assert c.pid_int == 138342427
+    assert c.product_id == "1234567890"
+    assert c.pid_int == 1234567890
     assert c.origin == "https://www.ozon.ru"
-    assert c.ppath == "/product/tovar-138342427/"
-    assert c.rpath == "/product/tovar-138342427/reviews/"
+    assert c.ppath == "/product/tovar-1234567890/"
+    assert c.rpath == "/product/tovar-1234567890/reviews/"

@@ -3,10 +3,11 @@ import pytest
 
 from ozon.urls import extract_product_id, normalize
 
-ARTICLE = "138342427"
-SHORT = "https://ozon.ru/t/l1A33Af"
-FULL = ("https://www.ozon.ru/product/sredstvo-dlya-mytya-posudy-fairy-"
-        "sochnyy-limon-900-ml-138342427/?from=share_web&sh=njzY7Kkt&__rr=1")
+# Синтетические значения: тесты не должны ссылаться на реальную карточку Ozon.
+ARTICLE = "1234567890"
+SHORT = "https://ozon.ru/t/AbCdEfG"
+FULL = (f"https://www.ozon.ru/product/tovar-{ARTICLE}/"
+        "?from=share_web&sh=XxYyZz&__rr=1")
 
 
 # --- normalize: три способа задать товар ---

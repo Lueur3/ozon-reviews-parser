@@ -19,7 +19,7 @@ def parse_args(argv=None):
             "или артикулом из поиска.\n\n"
             "Примеры:\n"
             '  python main.py "<ссылка>"                             все варианты, за год\n'
-            "  python main.py 138342427                              по артикулу из поиска\n"
+            "  python main.py 1234567890                             по артикулу из поиска\n"
             '  python main.py "<ссылка>" --this-variant              только вариант из ссылки\n'
             '  python main.py "<ссылка>" --years 2 --max 1000        за 2 года, до 1000 отзывов\n'
             "  python main.py -f urls.txt                            список ссылок из файла\n"
