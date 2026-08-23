@@ -15,7 +15,7 @@ import json
 import re
 from urllib.parse import urlparse
 
-from _common import CAPTURES, api, launch_browser, utf8_stdout
+from _common import CAPTURES, api, launch_browser, normalize, utf8_stdout
 
 from ozon import parse
 
@@ -32,6 +32,7 @@ def qcount(data):
 
 
 async def main(url):
+    url = normalize(url)        # принимаем ссылку или артикул, как основной CLI
     QA.mkdir(parents=True, exist_ok=True)
     records = []
     pending = []

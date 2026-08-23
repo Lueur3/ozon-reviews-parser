@@ -20,7 +20,7 @@ import logging
 import sys
 from urllib.parse import urlparse, urlunparse
 
-from _common import CAPTURES as CAP, LOGS, launch_browser, utf8_stdout
+from _common import CAPTURES as CAP, LOGS, launch_browser, normalize, utf8_stdout
 
 from ozon.urls import extract_product_id
 
@@ -52,6 +52,7 @@ def reviews_url_from(resolved: str) -> str:
 
 
 async def run(url: str, headless: bool):
+    url = normalize(url)        # принимаем ссылку или артикул, как основной CLI
     CAP.mkdir(exist_ok=True)
     captured = []          # (status, content-type, url)
     pending = []

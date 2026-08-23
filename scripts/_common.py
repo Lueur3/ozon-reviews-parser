@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from ozon import api                     # noqa: E402  (после правки sys.path)
 from ozon.browser import launch_browser   # noqa: E402
-from ozon.urls import extract_product_id  # noqa: E402
+from ozon.urls import extract_product_id, normalize  # noqa: E402
 
 CAPTURES = ROOT / "captures"
 LOGS = ROOT / "logs"
@@ -56,6 +56,9 @@ async def open_session(url: str, scrolls: int = 8, on_data=None, headless: bool 
     on_data — необязательный колбэк(dict) на каждый перехваченный JSON-ответ
     (скрипты используют его, чтобы собирать сырые ответы).
     """
+    # Тот же разбор ввода, что и у основного CLI: скрипты тоже принимают
+    # короткую ссылку, полную ссылку или артикул.
+    url = normalize(url)
     state = {"headers": None}
     pending = []
 
@@ -84,7 +87,10 @@ async def open_session(url: str, scrolls: int = 8, on_data=None, headless: bool 
     async with launch_browser(headless=headless) as (_context, page):
         page.on("response", schedule)
         try:
-            await page.goto(url, wait_until="domcontentloaded")
+            try:
+                await page.goto(url, wait_until="domcontentloaded")
+            except Exception as e:
+                raise SystemExit(f"Не удалось открыть {url}: {e}") from None
             await page.wait_for_timeout(2500)
             await drain()
             for _ in range(scrolls):
