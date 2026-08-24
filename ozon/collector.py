@@ -12,7 +12,6 @@
 а шаги — в методах; точка входа — collect().
 """
 import asyncio
-from datetime import datetime
 
 from . import api, config, parse
 from .errors import BootstrapError, CaptchaTimeout
@@ -47,6 +46,7 @@ class ReviewCollector:
         self.headers = None                # заголовки внутреннего API из сессии
         self._pending: list = []           # незавершённые обработчики response
         self._chrono_uuids: set = set()    # uuid из хронологической ленты (для непредвзятой статистики)
+        self._oldest_ts = 0                # самая ранняя дата среди собранных (для стопа по периоду)
 
         # реквизиты товара (заполняются в _bootstrap по resolved_url)
         self.resolved_url = ""
@@ -139,8 +139,14 @@ class ReviewCollector:
         before = len(self.reviews_by_uuid)
         for r in reviews:
             uuid = r.get("uuid")
-            if uuid:
-                self.reviews_by_uuid[uuid] = r
+            if not uuid:
+                continue
+            self.reviews_by_uuid[uuid] = r
+            # ведём минимум по ходу: пересчёт по всему буферу на каждой странице
+            # стоил бы O(n) при n до нескольких тысяч
+            ts = r.get("publishedAt") or r.get("createdAt") or 0
+            if ts and (not self._oldest_ts or ts < self._oldest_ts):
+                self._oldest_ts = ts
         return len(self.reviews_by_uuid) - before
 
     async def _on_response(self, resp):
@@ -251,9 +257,7 @@ class ReviewCollector:
                 return "error"
             added = self._absorb(data)
             pages += 1
-            # тот же расчёт даты, что и в фильтре; нули (нет даты) игнорируем, чтобы не остановиться раньше времени
-            stamps = [r.get("publishedAt") or r.get("createdAt") or 0 for r in self.reviews_by_uuid.values()]
-            oldest = min((t for t in stamps if t), default=0)
+            oldest = self._oldest_ts
             log.info("[%s] page %d: added=%d total=%d oldest=%s hasNext=%s",
                      label, pages, added, len(self.reviews_by_uuid),
                      parse.ts_to_date(oldest), bool(data.get("nextPage")))
@@ -311,7 +315,7 @@ class ReviewCollector:
     def _stats(self) -> dict:
         """Статистика по непредвзятой хронологической выборке (без доборов по оценке; overall — из Ozon)."""
         chrono = [self.reviews_by_uuid[u] for u in self._chrono_uuids]
-        return compute_stats(chrono, self.score, self.total, datetime.now(parse._TZ))
+        return compute_stats(chrono, self.score, self.total, parse.now_local())
 
     def _meta(self, price: dict, characteristics: dict, questions: list, stats: dict) -> dict:
         """Сводка meta для runner."""

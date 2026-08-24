@@ -168,13 +168,18 @@ def ts_to_date(ts) -> str:
     return datetime.fromtimestamp(int(ts or 0), tz=_TZ).date().isoformat()
 
 
+def now_local() -> datetime:
+    """Текущее время в зоне, в которой Ozon отдаёт даты (см. config.TIMEZONE)."""
+    return datetime.now(tz=_TZ)
+
+
 def cutoff_ts(period_days: int, now: datetime | None = None) -> float:
     """Отметка времени, старше которой отзывы отбрасываются.
 
     `now` инъектируется в тестах, иначе функция зависела бы от системных часов
     и результат нельзя было бы проверить детерминированно.
     """
-    return ((now or datetime.now(tz=_TZ)) - timedelta(days=period_days)).timestamp()
+    return ((now or now_local()) - timedelta(days=period_days)).timestamp()
 
 
 def _media_urls(items) -> list:

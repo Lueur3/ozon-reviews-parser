@@ -72,3 +72,15 @@ def test_profile_dir_flag():
     a = parse_args(["<url>", "--profile-dir", "/tmp/ozon_profile"])
     assert a.profile_dir == Path("/tmp/ozon_profile")
     assert parse_args(["<url>"]).profile_dir == config.PROFILE_DIR
+
+
+def test_doctor_rejects_file_list():
+    """--doctor проверяет один товар; со списком это бессмысленно."""
+    with pytest.raises(SystemExit) as e:
+        main(["--doctor", "-f", "urls.txt"])
+    assert "-f" in str(e.value)
+
+
+def test_article_is_normalized_on_the_way_in():
+    a = parse_args(["1234567890"])
+    assert load_urls(a) == ["https://www.ozon.ru/product/1234567890/"]

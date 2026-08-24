@@ -71,8 +71,10 @@ def main(argv=None):
 
     # Ленивые импорты: --help работает без установленного playwright.
     if args.doctor:
+        if args.file:
+            raise SystemExit("--doctor проверяет один товар: передайте ссылку или артикул, не -f.")
         if not args.url:
-            raise SystemExit("Для --doctor нужна ссылка на товар: main.py --doctor \"<ссылка>\"")
+            raise SystemExit("Для --doctor нужна ссылка или артикул: main.py \"<ссылка>\" --doctor")
         from .doctor import run_doctor
         raise SystemExit(guarded(lambda: run_doctor(normalize(args.url),
                                                     profile_dir=args.profile_dir,

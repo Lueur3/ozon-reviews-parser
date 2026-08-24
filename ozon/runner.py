@@ -5,6 +5,7 @@ import time
 from . import config
 from .browser import launch_browser
 from .collector import ReviewCollector
+from .errors import CaptchaTimeout
 from .logging_setup import get_logger
 from .models import Product
 from .storage import save_product
@@ -23,7 +24,7 @@ async def _run_async(urls, period_days, all_variants, headless, max_reviews,
     output_dir = output_dir or config.OUTPUT_DIR
     started = time.perf_counter()
     async with launch_browser(headless=headless, fresh_profile=fresh_profile,
-                              profile_dir=profile_dir or config.PROFILE_DIR) as (context, page):
+                              profile_dir=profile_dir or config.PROFILE_DIR) as (_context, page):
         for i, url in enumerate(urls):
             mode = "все варианты" if all_variants else "только этот вариант"
             _report(f"[{i + 1}/{len(urls)}] {url} ({mode}) — собираю отзывы...")
@@ -33,6 +34,11 @@ async def _run_async(urls, period_days, all_variants, headless, max_reviews,
                     page, url, period_days=period_days, all_variants=all_variants,
                     max_reviews=max_reviews, page_delay=config.PAGE_DELAY)
                 reviews, meta = await collector.collect()
+            except CaptchaTimeout:
+                # Пользователь не снял капчу — на следующих товарах будет то же
+                # самое, каждый по 5 минут. Прекращаем весь пакет.
+                _report("    капча/блокировка не снята — прекращаю обработку списка")
+                raise
             except Exception as e:
                 _report(f"    ошибка сбора: {e}")
                 log.exception("сбор %s не удался", url)
@@ -62,7 +68,12 @@ async def _run_async(urls, period_days, all_variants, headless, max_reviews,
                 reviews_period_days=period_days,
                 reviews=reviews,
             )
-            path = save_product(product, output_dir)
+            try:
+                path = save_product(product, output_dir)
+            except OSError as e:
+                # Не пишется один файл — не повод терять остальные товары списка.
+                _report(f"    не удалось сохранить в {output_dir}: {e}")
+                continue
             _report(f"    сохранено: {path} | отзывов: {len(reviews)} | "
                     f"вопросов: {len(meta.get('questions', []))} | "
                     f"оценка: {meta.get('score')} | всего на товаре: {meta.get('total')} | "

@@ -183,3 +183,10 @@ def test_to_review_full():
 def test_to_review_anonymous_author():
     r = parse.to_review(_raw(author={"firstName": "", "lastName": ""}), {})
     assert r.author == "Аноним"
+
+
+def test_now_local_is_timezone_aware():
+    """Публичная замена приватному parse._TZ, которым пользовался collector."""
+    now = parse.now_local()
+    assert now.tzinfo is not None
+    assert abs(parse.cutoff_ts(0, now) - now.timestamp()) < 1e-6
