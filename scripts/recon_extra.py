@@ -15,6 +15,8 @@ import json
 
 from _common import CAPTURES, api, open_session, utf8_stdout
 
+from ozon import parse
+
 utf8_stdout()
 EXTRA = CAPTURES / "extra"
 
@@ -57,7 +59,26 @@ async def recon(url: str):
         ppath = s.ppath
         await fetch_dump(ppath, "product")
         await fetch_dump(api.features_path(ppath), "features")
+        # две выборки вопросов: как их берёт парсер (с сортировкой) и без неё —
+        # так видно, дело в параметре сортировки или вопросов действительно нет
         await fetch_dump(ppath + "questions/", "questions")
+        await fetch_dump(api.questions_page(ppath, 1), "questions_sorted")
+
+        for label in ("questions", "questions_sorted"):
+            data = json.loads((EXTRA / f"{label}.json").read_text(encoding="utf-8"))
+            w = parse.question_widget(data)
+            if not w:
+                print(f"[{label}] виджет вопросов НЕ найден")
+                report.append(f"### {label}: webListQuestions не найден")
+                continue
+            qs = w.get("questions") or {}
+            qa = w.get("questionAnswers") or {}
+            answered = sum(1 for qid in qs if (qa.get(str(qid)) or qa.get(qid)))
+            line = (f"{label}: вопросов на странице={len(qs)}, из них с ответами={answered}, "
+                    f"всего ответов в ответе={len(w.get('answers') or {})}, "
+                    f"paging={json.dumps(w.get('paging'), ensure_ascii=False)}")
+            print(" ", line)
+            report.append("### " + line)
 
     (EXTRA / "_widgets.txt").write_text("\n\n".join(report), encoding="utf-8")
     print("\nКарта виджетов: captures/extra/_widgets.txt")
