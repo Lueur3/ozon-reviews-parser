@@ -3,6 +3,7 @@ import asyncio
 import time
 
 from . import config
+from .anonymize import anonymize
 from .browser import launch_browser
 from .collector import ReviewCollector
 from .errors import CaptchaTimeout
@@ -20,7 +21,8 @@ def _report(msg: str) -> None:
 
 
 async def _run_async(urls, period_days, all_variants, headless, max_reviews,
-                     output_dir=None, profile_dir=None, fresh_profile=False):
+                     output_dir=None, profile_dir=None, fresh_profile=False,
+                     anonymize_output=False):
     output_dir = output_dir or config.OUTPUT_DIR
     started = time.perf_counter()
     async with launch_browser(headless=headless, fresh_profile=fresh_profile,
@@ -68,6 +70,8 @@ async def _run_async(urls, period_days, all_variants, headless, max_reviews,
                 reviews_period_days=period_days,
                 reviews=reviews,
             )
+            if anonymize_output:
+                product = anonymize(product)
             try:
                 path = save_product(product, output_dir)
             except OSError as e:
@@ -89,7 +93,7 @@ async def _run_async(urls, period_days, all_variants, headless, max_reviews,
 
 
 def run(urls, period_days, all_variants, headless, max_reviews,
-        output_dir=None, profile_dir=None, fresh_profile=False):
+        output_dir=None, profile_dir=None, fresh_profile=False, anonymize_output=False):
     asyncio.run(_run_async(urls, period_days, all_variants, headless, max_reviews,
                            output_dir=output_dir, profile_dir=profile_dir,
-                           fresh_profile=fresh_profile))
+                           fresh_profile=fresh_profile, anonymize_output=anonymize_output))

@@ -46,9 +46,18 @@ def test_doctor_needs_explicit_url():
 
 def test_load_urls_from_file(tmp_path):
     f = tmp_path / "urls.txt"
-    f.write_text("# комментарий\nhttps://a\n\n  https://b  \n", encoding="utf-8")
+    f.write_text("# комментарий\nhttps://ozon.ru/t/AaA\n\n  1234567890  \n", encoding="utf-8")
     a = parse_args(["-f", str(f)])
-    assert load_urls(a) == ["https://a", "https://b"]
+    assert load_urls(a) == ["https://ozon.ru/t/AaA",
+                            "https://www.ozon.ru/product/1234567890/"]
+
+
+def test_file_with_foreign_link_is_rejected(tmp_path):
+    """Чужой список не должен уводить браузер на посторонний адрес."""
+    f = tmp_path / "urls.txt"
+    f.write_text("https://ozon.ru/t/AaA\nfile:///C:/Windows/win.ini\n", encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_urls(parse_args(["-f", str(f)]))
 
 
 def test_guarded_exit_codes():
@@ -84,3 +93,8 @@ def test_doctor_rejects_file_list():
 def test_article_is_normalized_on_the_way_in():
     a = parse_args(["1234567890"])
     assert load_urls(a) == ["https://www.ozon.ru/product/1234567890/"]
+
+
+def test_anonymize_flag():
+    assert parse_args(["1234567890", "--anonymize"]).anonymize is True
+    assert parse_args(["1234567890"]).anonymize is False

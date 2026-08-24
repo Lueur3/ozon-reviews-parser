@@ -50,6 +50,9 @@ def parse_args(argv=None):
                    help=f"куда писать JSON (по умолчанию {config.OUTPUT_DIR.name}/)")
     p.add_argument("--profile-dir", type=Path, default=config.PROFILE_DIR,
                    help=f"где хранить профиль браузера (по умолчанию {config.PROFILE_DIR.name}/)")
+    p.add_argument("--anonymize", action="store_true",
+                   help="убрать из файла имена авторов и их фото/видео "
+                        "(данные третьих лиц; удобно перед отправкой файла наружу)")
     p.add_argument("--fresh-profile", action="store_true",
                    help="удалить сохранённый профиль браузера перед запуском "
                         "(если сессия испортилась: залипла капча, забанен отпечаток)")
@@ -96,6 +99,7 @@ def main(argv=None):
         output_dir=args.output_dir,
         profile_dir=args.profile_dir,
         fresh_profile=args.fresh_profile,
+        anonymize_output=args.anonymize,
     )))
 
 

@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0,<10.0"]
+dev = ["pytest>=8.0,<10.0", "pip-audit>=2.7"]
 
 [project.scripts]
 ozon-reviews-parser = "ozon.cli:main"

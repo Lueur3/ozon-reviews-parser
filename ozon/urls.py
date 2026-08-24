@@ -2,7 +2,7 @@
 import re
 from urllib.parse import urlparse
 
-from . import api
+from . import api, config
 
 _ARTICLE_RE = re.compile(r"^\d{5,12}$")     # артикул Ozon — только цифры
 _QUOTES = "\"'«»"
@@ -22,8 +22,25 @@ def normalize(raw: str) -> str:
         # короткий путь Ozon сам разворачивает в полную карточку товара
         return f"{api.BASE_URL}/product/{value}/"
     if "://" not in value:
-        return "https://" + value.lstrip("/")   # ozon.ru/t/xxx без схемы
-    return value
+        value = "https://" + value.lstrip("/")   # ozon.ru/t/xxx без схемы
+    return _checked(value)
+
+
+def _checked(url: str) -> str:
+    """Пропускает только http(s) на домен Ozon.
+
+    Ввод может прийти из чужого файла со списком: без этой проверки `page.goto`
+    открыл бы в настоящем браузере пользователя локальный файл (`file://`),
+    адрес внутренней сети или сервис метаданных облака.
+    """
+    pr = urlparse(url)
+    if pr.scheme not in config.ALLOWED_SCHEMES:
+        raise ValueError(f"поддерживаются только http/https, получено: {url}")
+    host = (pr.hostname or "").lower()
+    suffix = config.ALLOWED_HOST_SUFFIX
+    if not (host == suffix or host.endswith("." + suffix)):
+        raise ValueError(f"ожидалась ссылка на {suffix}, получено: {url}")
+    return url
 
 
 def extract_product_id(url: str) -> str | None:

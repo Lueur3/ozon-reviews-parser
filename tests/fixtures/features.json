@@ -83,7 +83,7 @@
               "name": "Артикул",
               "values": [
                 {
-                  "text": "2608235411",
+                  "text": "1234567890",
                   "key": "Sku",
                   "trackingInfo": {
                     "click": {
@@ -93,7 +93,7 @@
                   }
                 }
               ],
-              "copyText": "2608235411"
+              "copyText": "1234567890"
             },
             {
               "key": "Type",

@@ -41,8 +41,33 @@ def test_empty_input_rejected(raw):
 
 
 def test_short_number_is_not_an_article():
-    """Слишком короткое число — не артикул; трактуем как ссылку, а не как товар."""
-    assert normalize("123").startswith("https://123")
+    """Слишком короткое число — не артикул; и как хост оно тоже не проходит."""
+    with pytest.raises(ValueError):
+        normalize("123")
+
+
+# --- ограничение схемы и хоста ---
+
+@pytest.mark.parametrize("raw", [
+    "file:///C:/Windows/win.ini",       # локальный файл
+    "ftp://ozon.ru/x",                  # чужая схема
+    "http://127.0.0.1:8000/admin",      # локальная сеть
+    "http://169.254.169.254/latest/",   # метаданные облака
+    "https://evil.com/ozon.ru",         # домен в пути, а не в хосте
+    "https://ozon.ru.evil.com/x",       # хост лишь начинается с ozon.ru
+])
+def test_foreign_targets_rejected(raw):
+    with pytest.raises(ValueError):
+        normalize(raw)
+
+
+@pytest.mark.parametrize("raw", [
+    "https://ozon.ru/t/AbCdEfG",
+    "https://www.ozon.ru/product/tovar-1234567890/",
+    "http://ozon.ru/t/AbCdEfG",
+])
+def test_ozon_targets_allowed(raw):
+    assert normalize(raw) == raw
 
 
 # --- extract_product_id ---
@@ -50,7 +75,7 @@ def test_short_number_is_not_an_article():
 @pytest.mark.parametrize("url, expected", [
     (FULL, ARTICLE),
     (f"https://www.ozon.ru/product/{ARTICLE}", ARTICLE),
-    (f"https://www.ozon.ru/product/bq-2842-disco-{ARTICLE}/reviews/", ARTICLE),
+    (f"https://www.ozon.ru/product/tovar-so-slugom-{ARTICLE}/reviews/", ARTICLE),
     (normalize(ARTICLE), ARTICLE),          # ссылка, собранная из артикула
 ])
 def test_extract_product_id_ok(url, expected):
