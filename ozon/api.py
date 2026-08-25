@@ -35,6 +35,7 @@ WIDGET_CHARACTERISTICS = "webCharacteristics"
 WIDGET_SHORT_CHARACTERISTICS = "webShortCharacteristics"
 WIDGET_QUESTIONS = "webListQuestions"        # прежняя разметка Q&A
 WIDGET_QUESTIONS_PDP = "webPDPListQuestions"  # с августа 2026 Ozon отдаёт эту
+WIDGET_PAGINATOR = "paginator"               # курсор следующей страницы вопросов
 
 # Заголовки, которые браузер выставит сам: свои значения ломают fetch.
 DROP_HEADERS = {"host", "cookie", "content-length", "accept-encoding", "connection",

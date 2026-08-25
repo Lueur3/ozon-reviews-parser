@@ -124,6 +124,21 @@ def question_widget(data: dict):
     return None
 
 
+def next_page(data: dict) -> str | None:
+    """Курсор следующей страницы.
+
+    У ленты отзывов он лежит в корне ответа, а у новой ленты вопросов — в отдельном
+    виджете `paginator-*` (внутри base64-ключ с uuid последнего показанного вопроса).
+    """
+    top = data.get("nextPage")
+    if top:
+        return top
+    for k, w in widget_states(data).items():
+        if k.startswith(api.WIDGET_PAGINATOR) and isinstance(w, dict) and w.get("nextPage"):
+            return w["nextPage"]
+    return None
+
+
 def _text(node) -> str:
     """Поле Ozon: раньше строка, в новой разметке объект {"text": ..., "textColor": ...}."""
     if isinstance(node, dict):

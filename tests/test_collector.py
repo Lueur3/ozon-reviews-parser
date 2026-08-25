@@ -106,3 +106,72 @@ def test_stats_only_over_chrono_subset():
 def test_is_empty():
     assert _is_empty(Review(author="x", rating=5, date="2026-01-01", text="  "))
     assert not _is_empty(Review(author="x", rating=5, date="2026-01-01", pros="плюс"))
+
+
+# --- курсорная пагинация вопросов (новая лента Ozon) ---
+
+def _pdp_page(texts, cursor=None):
+    """Ответ Ozon в новой разметке: вопросы + необязательный курсор в paginator."""
+    ws = {"webPDPListQuestions-1-default-1": {"questions": [
+        {"questionUuid": f"u{t}", "author": {"name": {"text": "Кто-то"}},
+         "text": {"text": t}, "createdAt": {"text": "24 августа 2026"},
+         "answers": [{"author": {"name": {"text": "Ответчик"}},
+                      "text": {"text": "ответ"}, "createdAt": {"text": "24 августа 2026"}}]}
+        for t in texts
+    ]}}
+    if cursor:
+        ws["paginator-1-default-1"] = {"nextPage": cursor}
+    return {"widgetStates": ws}
+
+
+class _PagedClient:
+    """Отдаёт заранее заданные страницы и запоминает, что у него запрашивали."""
+
+    def __init__(self, pages):
+        self.pages = pages
+        self.asked = []
+
+    async def fetch(self, param):
+        self.asked.append(param)
+        return self.pages[len(self.asked) - 1]
+
+
+def _questions_collector(client):
+    c = _collector({})
+    c.client = client
+    c.ppath = "/product/tovar-1234567890/"
+    c.page = type("P", (), {"wait_for_timeout": staticmethod(lambda ms: _done())})()
+    return c
+
+
+def _done():
+    import asyncio
+    fut = asyncio.get_event_loop().create_future()
+    fut.set_result(None)
+    return fut
+
+
+def test_questions_follow_the_cursor():
+    """С ?page=N Ozon отдаёт одну и ту же десятку — идти нужно по nextPage."""
+    import asyncio
+    client = _PagedClient([
+        _pdp_page(["в1", "в2"], cursor="/product/tovar-1234567890/questions/?page_key=AAA"),
+        _pdp_page(["в3", "в4"], cursor="/product/tovar-1234567890/questions/?page_key=BBB"),
+        _pdp_page(["в5"]),                       # курсора нет — конец ленты
+    ])
+    qs = asyncio.run(_questions_collector(client)._collect_questions())
+    assert [q["text"] for q in qs] == ["в1", "в2", "в3", "в4", "в5"]
+    assert client.asked[1].endswith("page_key=AAA")
+    assert client.asked[2].endswith("page_key=BBB")
+
+
+def test_questions_stop_when_page_adds_nothing_new():
+    import asyncio
+    client = _PagedClient([
+        _pdp_page(["в1"], cursor="/next"),
+        _pdp_page(["в1"], cursor="/next"),       # повтор — дальше не идём
+        _pdp_page(["в2"]),
+    ])
+    qs = asyncio.run(_questions_collector(client)._collect_questions())
+    assert [q["text"] for q in qs] == ["в1"]
+    assert len(client.asked) == 2

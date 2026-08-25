@@ -202,15 +202,23 @@ class ReviewCollector:
         return price, characteristics
 
     async def _collect_questions(self, max_pages: int = config.QUESTION_PAGES) -> list:
-        """Вопросы с ответами (сорт «сначала с ответом»; анонимно ~90 вопросов).
+        """Вопросы с ответами, сортировка «сначала с ответом».
 
-        У вопросов с пометкой «Ещё N ответ» догружаем все ответы со страницы вопроса.
+        Останавливаемся, когда курсор кончился или страница не принесла новых
+        отвеченных вопросов — при этой сортировке дальше идут только без ответов.
+        В прежней разметке у вопросов бывала пометка «Ещё N ответ»: для них
+        ответы догружаются со страницы вопроса.
         """
         questions = []
         seen_q = set()
+        # Новая лента вопросов листается курсором (виджет paginator), а не ?page=N:
+        # с фиксированным номером страницы Ozon возвращает одну и ту же первую десятку.
+        param = api.questions_page(self.ppath, 1)
         for page_n in range(1, max_pages + 1):
+            if not param:
+                break
             try:
-                qdata = await self.client.fetch(api.questions_page(self.ppath, page_n))
+                qdata = await self.client.fetch(param)
             except CaptchaTimeout:
                 raise
             except Exception as e:
@@ -238,6 +246,8 @@ class ReviewCollector:
                 q.pop("_id", None)
                 q.pop("_has_more", None)
                 questions.append(q)
+            param = parse.next_page(qdata)
+            await self.page.wait_for_timeout(config.delay_ms(config.FETCH_DELAY))
         return questions
 
     # ------------------------------------------------------------------ #
