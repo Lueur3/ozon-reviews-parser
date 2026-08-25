@@ -101,27 +101,43 @@ class OzonClient:
         self.poll_ms = poll_ms
 
     async def fetch(self, param: str) -> dict:
-        """GET JSON по внутреннему пути. При капче/блоке ждёт и повторяет."""
+        """GET JSON по внутреннему пути.
+
+        Разовый сбой (5xx, обрыв, таймаут) повторяем молча — раньше любая сетевая
+        икота печатала «реши капчу» и перезагружала страницу. Про капчу говорим
+        только при статусе блокировки или когда сбои не прекращаются.
+        """
         url = self.origin + API_PATH + quote(param, safe="")
-        waited = False
+        announced = False
+        transient = 0
         reason = "неизвестно"
         for _ in range(self.captcha_iters):
+            blocked = False
             try:
                 res = await self.page.evaluate(FETCH_JS, {"u": url, "h": self.headers})
-                if isinstance(res, dict) and res.get("status") == 200:
+                status = res.get("status") if isinstance(res, dict) else None
+                if status == 200:
                     return json.loads(res["text"])
-                reason = f"HTTP {res.get('status') if isinstance(res, dict) else '?'}"
+                reason = f"HTTP {status if status is not None else '?'}"
+                blocked = status in config.BLOCK_STATUSES
             except json.JSONDecodeError as e:
                 reason = f"ответ не JSON ({e})"        # обычно HTML страницы капчи
+                blocked = True
             except Exception as e:
                 reason = repr(e)                        # сеть/страница закрыта/JS упал
-            log.debug("fetch %s не удался: %s", param, reason)
-            if not waited:
+
+            if not blocked and transient < config.TRANSIENT_RETRIES:
+                transient += 1
+                log.debug("fetch %s: разовый сбой (%s), попытка %d", param, reason, transient)
+                await self.page.wait_for_timeout(config.TRANSIENT_RETRY_MS)
+                continue
+
+            if not announced:
                 print(">>> Капча/блокировка Ozon. Реши капчу в открытом окне Chrome — "
                       "жду и продолжу сам...")
                 log.warning("captcha/block (%s): жду решения пользователя в окне", reason)
                 await self._open_recovery()
-                waited = True
+                announced = True
             await self.page.wait_for_timeout(self.poll_ms)
         raise CaptchaTimeout(
             f"за {self.captcha_iters * self.poll_ms // 60000} мин доступ не восстановился "

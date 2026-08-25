@@ -67,4 +67,10 @@ async def launch_browser(headless: bool = False, profile_dir: Path = config.PROF
         try:
             yield context, page
         finally:
-            await context.close()
+            # При Ctrl+C соединение с драйвером уже оборвано, и close() падает
+            # своей ошибкой, подменяя исходное прерывание. Уборка не должна
+            # заслонять причину выхода.
+            try:
+                await context.close()
+            except Exception as e:
+                log.debug("контекст браузера уже закрыт: %r", e)

@@ -171,10 +171,20 @@ class ReviewCollector:
             self.shelf_next = np
 
     async def _drain(self):
-        """Дождаться накопленных обработчиков response."""
-        if self._pending:
-            await asyncio.gather(*self._pending, return_exceptions=True)
-            self._pending.clear()
+        """Дождаться накопленных обработчиков response.
+
+        При отмене (Ctrl+C) незавершённые задачи отменяем явно, иначе asyncio
+        ругается «Future exception was never retrieved» уже после выхода.
+        """
+        if not self._pending:
+            return
+        pending, self._pending = self._pending, []
+        try:
+            await asyncio.gather(*pending, return_exceptions=True)
+        except asyncio.CancelledError:
+            for task in pending:
+                task.cancel()
+            raise
 
     # ------------------------------------------------------------------ #
     # Доп. данные карточки

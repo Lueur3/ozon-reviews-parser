@@ -85,3 +85,56 @@ def test_fetch_gives_up_with_reason():
     with pytest.raises(CaptchaTimeout) as e:
         asyncio.run(_client(page, captcha_iters=3).fetch("/product/x-1/"))
     assert "403" in str(e.value)      # причина названа, а не «неизвестно»
+
+
+# --- разовый сбой против настоящей блокировки ---
+
+class _Recording(FakePage):
+    """Считает паузы, чтобы отличить тихий повтор от ожидания капчи."""
+
+    def __init__(self, responses):
+        super().__init__(responses)
+        self.waits = []
+
+    async def wait_for_timeout(self, ms):
+        self.waits.append(ms)
+
+
+def test_transient_failure_retries_silently(capsys):
+    """Одиночный 5xx раньше печатал «реши капчу» и дёргал страницу."""
+    page = _Recording([
+        {"status": 502, "text": "bad gateway"},
+        {"status": 200, "text": json.dumps({"ok": True})},
+    ])
+    data = asyncio.run(_client(page).fetch("/product/x-1/"))
+    assert data == {"ok": True}
+    assert page.gotos == 0                       # страницу не перезагружали
+    assert "Капча" not in capsys.readouterr().out
+
+
+def test_network_error_retries_silently(capsys):
+    page = _Recording([
+        RuntimeError("net::ERR_CONNECTION_RESET"),
+        {"status": 200, "text": json.dumps({"ok": True})},
+    ])
+    assert asyncio.run(_client(page).fetch("/product/x-1/")) == {"ok": True}
+    assert page.gotos == 0
+    assert "Капча" not in capsys.readouterr().out
+
+
+def test_block_status_announces_captcha_at_once(capsys):
+    """403 — это уже блокировка, тянуть с сообщением незачем."""
+    page = _Recording([
+        {"status": 403, "text": "<html>captcha</html>"},
+        {"status": 200, "text": json.dumps({"ok": True})},
+    ])
+    assert asyncio.run(_client(page).fetch("/product/x-1/")) == {"ok": True}
+    assert page.gotos == 1                       # окно для капчи открыли
+    assert "Капча" in capsys.readouterr().out
+
+
+def test_persistent_transient_failures_eventually_announce(capsys):
+    page = _Recording([{"status": 502, "text": "bad"}] * 6)
+    with pytest.raises(CaptchaTimeout):
+        asyncio.run(_client(page, captcha_iters=6).fetch("/product/x-1/"))
+    assert "Капча" in capsys.readouterr().out    # сбои не прекратились — сообщаем
