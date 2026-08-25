@@ -106,8 +106,11 @@ def parse_characteristics(data: dict) -> dict:
 
 
 def question_widget(data: dict):
+    """Виджет вопросов в любой из разметок Ozon (см. parse_questions)."""
     for k, w in widget_states(data).items():
-        if k.startswith(api.WIDGET_QUESTIONS) and isinstance(w, dict):
+        if not isinstance(w, dict):
+            continue
+        if k.startswith(api.WIDGET_QUESTIONS_PDP) or k.startswith(api.WIDGET_QUESTIONS):
             return w
     st = data.get("state")
     if isinstance(st, str):
@@ -121,11 +124,44 @@ def question_widget(data: dict):
     return None
 
 
-def parse_questions(data: dict, answered_only: bool = True) -> list:
-    """Список вопросов с ответами: [{author, text, date, answers:[{author,text,date,is_best}]}]."""
-    w = question_widget(data)
-    if not w:
-        return []
+def _text(node) -> str:
+    """Поле Ozon: раньше строка, в новой разметке объект {"text": ..., "textColor": ...}."""
+    if isinstance(node, dict):
+        return node.get("text", "") or ""
+    return node or ""
+
+
+def _questions_pdp(w: dict, answered_only: bool) -> list:
+    """Разметка webPDPListQuestions: questions — список, ответы вложены в вопрос."""
+    out = []
+    for q in w.get("questions") or []:
+        if not isinstance(q, dict):
+            continue
+        answers = [
+            {
+                "author": _text(((a.get("author") or {}).get("name"))),
+                "text": _text(a.get("text")),
+                "date": _text(a.get("createdAt")),
+                # признака «лучший ответ» в этой разметке нет
+                "is_best": False,
+            }
+            for a in (q.get("answers") or []) if isinstance(a, dict)
+        ]
+        if answered_only and not answers:
+            continue
+        out.append({
+            "_id": q.get("questionUuid") or "",
+            "_has_more": False,     # отдельной догрузки ответов здесь не предусмотрено
+            "author": _text(((q.get("author") or {}).get("name"))),
+            "text": _text(q.get("text")),
+            "date": _text(q.get("createdAt")),
+            "answers": answers,
+        })
+    return out
+
+
+def _questions_legacy(w: dict, answered_only: bool) -> list:
+    """Разметка webListQuestions: questions/answers раздельно, связь через questionAnswers."""
     questions = w.get("questions") or {}
     answers = w.get("answers") or {}
     qa = w.get("questionAnswers") or {}
@@ -157,6 +193,22 @@ def parse_questions(data: dict, answered_only: bool = True) -> list:
             "answers": ans,
         })
     return out
+
+
+def parse_questions(data: dict, answered_only: bool = True) -> list:
+    """Вопросы с ответами: [{author, text, date, answers:[{author,text,date,is_best}]}].
+
+    Ozon держит две разметки Q&A: прежнюю (`webListQuestions`, словари и карта
+    `questionAnswers`) и новую (`webPDPListQuestions`, список вопросов с вложенными
+    ответами и полями-объектами). Различаем по форме `questions`, чтобы сбор
+    работал на обеих.
+    """
+    w = question_widget(data)
+    if not w:
+        return []
+    if isinstance(w.get("questions"), list):
+        return _questions_pdp(w, answered_only)
+    return _questions_legacy(w, answered_only)
 
 
 def variant_map(item_id, products: dict) -> dict:

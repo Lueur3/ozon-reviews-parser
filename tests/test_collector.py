@@ -83,8 +83,9 @@ def test_meta_shape():
     assert meta["price"] == {"price": "10 ₽"}
     assert meta["stats"] == {"overall": {}}
     assert meta["score"] == 4.8 and meta["total"] == 123
-    assert set(meta) == {"product_id", "resolved_url", "name", "variant",
-                         "price", "stats", "characteristics", "questions", "score", "total"}
+    assert set(meta) == {"product_id", "resolved_url", "name", "variant", "price", "stats",
+                         "characteristics", "questions", "questions_widget_seen",
+                         "score", "total"}
 
 
 def test_stats_only_over_chrono_subset():

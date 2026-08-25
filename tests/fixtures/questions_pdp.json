@@ -1,0 +1,137 @@
+{
+  "widgetStates": {
+    "webPDPListQuestions-13806005-default-1": {
+      "sorting": {
+        "value": "has_answers_desc"
+      },
+      "products": {},
+      "questions": [
+        {
+          "questionUuid": "1fdcef1d-dd7d-5288-a88e-e0a965bd6087",
+          "author": {
+            "name": {
+              "text": "Автор 2",
+              "textColor": "textSecondary",
+              "typographyToken": "tsCompact400Large"
+            },
+            "avatarUrl": ""
+          },
+          "createdAt": {
+            "text": "24 августа 2026",
+            "textColor": "textSecondary",
+            "typographyToken": "tsCompact400Large"
+          },
+          "text": {
+            "text": "Текст вопроса 1?",
+            "textColor": "textPrimary",
+            "typographyToken": "tsBody600Medium"
+          },
+          "itemId": "1234567890",
+          "answers": [
+            {
+              "answerUuid": "51a1bf1e-2fd4-5f07-a37f-cf8edcc866f2",
+              "author": {
+                "name": {
+                  "text": "Автор 1"
+                }
+              },
+              "createdAt": {
+                "text": "24 августа 2026",
+                "textColor": "textSecondary",
+                "typographyToken": "tsCompact400Large"
+              },
+              "text": {
+                "text": "Текст ответа 1.",
+                "typographyToken": "tsBody400Small"
+              },
+              "reactions": [],
+              "actions": [],
+              "popoverMenu": {},
+              "trackingInfo": {}
+            }
+          ],
+          "reactions": [],
+          "actions": [],
+          "popoverMenu": {},
+          "trackingInfo": {}
+        },
+        {
+          "questionUuid": "e412baed-b9d0-5c34-94df-ac0155028606",
+          "author": {
+            "name": {
+              "text": "Автор 4",
+              "textColor": "textSecondary",
+              "typographyToken": "tsCompact400Large"
+            },
+            "avatarUrl": ""
+          },
+          "createdAt": {
+            "text": "24 августа 2026",
+            "textColor": "textSecondary",
+            "typographyToken": "tsCompact400Large"
+          },
+          "text": {
+            "text": "Текст вопроса 2?",
+            "textColor": "textPrimary",
+            "typographyToken": "tsBody600Medium"
+          },
+          "itemId": "1234567890",
+          "answers": [
+            {
+              "answerUuid": "2b1e29ee-d279-5b6b-940c-8c1883c585cd",
+              "author": {
+                "name": {
+                  "text": "Автор 3"
+                }
+              },
+              "createdAt": {
+                "text": "24 августа 2026",
+                "textColor": "textSecondary",
+                "typographyToken": "tsCompact400Large"
+              },
+              "text": {
+                "text": "Текст ответа 1.",
+                "typographyToken": "tsBody400Small"
+              },
+              "reactions": [],
+              "actions": [],
+              "popoverMenu": {},
+              "trackingInfo": {}
+            }
+          ],
+          "reactions": [],
+          "actions": [],
+          "popoverMenu": {},
+          "trackingInfo": {}
+        },
+        {
+          "questionUuid": "e42be04d-dd2f-5be9-b037-072954068fa1",
+          "author": {
+            "name": {
+              "text": "Автор 5",
+              "textColor": "textSecondary",
+              "typographyToken": "tsCompact400Large"
+            },
+            "avatarUrl": ""
+          },
+          "createdAt": {
+            "text": "24 августа 2026",
+            "textColor": "textSecondary",
+            "typographyToken": "tsCompact400Large"
+          },
+          "text": {
+            "text": "Текст вопроса 3?",
+            "textColor": "textPrimary",
+            "typographyToken": "tsBody600Medium"
+          },
+          "itemId": "1234567890",
+          "answers": [],
+          "reactions": [],
+          "actions": [],
+          "popoverMenu": {},
+          "trackingInfo": {}
+        }
+      ]
+    }
+  }
+}

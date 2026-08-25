@@ -33,7 +33,8 @@ WIDGET_PRICE = "webPrice-"                   # дефис обязателен: 
                                              # декоративный webPriceDecreasedCompact
 WIDGET_CHARACTERISTICS = "webCharacteristics"
 WIDGET_SHORT_CHARACTERISTICS = "webShortCharacteristics"
-WIDGET_QUESTIONS = "webListQuestions"
+WIDGET_QUESTIONS = "webListQuestions"        # прежняя разметка Q&A
+WIDGET_QUESTIONS_PDP = "webPDPListQuestions"  # с августа 2026 Ozon отдаёт эту
 
 # Заголовки, которые браузер выставит сам: свои значения ломают fetch.
 DROP_HEADERS = {"host", "cookie", "content-length", "accept-encoding", "connection",

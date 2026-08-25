@@ -47,6 +47,7 @@ class ReviewCollector:
         self._pending: list = []           # незавершённые обработчики response
         self._chrono_uuids: set = set()    # uuid из хронологической ленты (для непредвзятой статистики)
         self._oldest_ts = 0                # самая ранняя дата среди собранных (для стопа по периоду)
+        self.questions_widget_seen = False  # отличить «вопросов нет» от «разметка сменилась»
 
         # реквизиты товара (заполняются в _bootstrap по resolved_url)
         self.resolved_url = ""
@@ -215,6 +216,8 @@ class ReviewCollector:
             except Exception as e:
                 log.warning("вопросы: страница %d не получена: %r", page_n, e)
                 break
+            if parse.question_widget(qdata) is not None:
+                self.questions_widget_seen = True
             new = [q for q in parse.parse_questions(qdata, answered_only=True)
                    if q["text"] not in seen_q]
             if not new:
@@ -328,6 +331,7 @@ class ReviewCollector:
             "stats": stats,
             "characteristics": characteristics,
             "questions": questions,
+            "questions_widget_seen": self.questions_widget_seen,
             "score": self.score,
             "total": self.total,
         }

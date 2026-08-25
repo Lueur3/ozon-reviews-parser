@@ -55,3 +55,18 @@ def test_fail_detail_present():
     report = check_health(_meta(price={}), _reviews(1))
     price = next(r for r in report if r[0] == "цена")
     assert price[1] == "FAIL" and "webPrice" in price[2]
+
+
+def test_unknown_questions_markup_is_failure_not_warning():
+    """Смена разметки Ozon пряталась за WARN «возможно, вопросов нет»."""
+    report = check_health(_meta(questions=[], questions_widget_seen=False), _reviews(1))
+    section = next(r for r in report if r[0] == "вопросы")
+    assert section[1] == "FAIL"
+    assert "разметк" in section[2]
+    assert has_failures(report)
+
+
+def test_no_questions_with_known_markup_stays_warning():
+    report = check_health(_meta(questions=[], questions_widget_seen=True), _reviews(1))
+    assert _status(report)["вопросы"] == "WARN"
+    assert not has_failures(report)

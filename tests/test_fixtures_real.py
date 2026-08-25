@@ -81,3 +81,40 @@ def test_answered_only_filter_is_effective():
     every = parse.parse_questions(data, answered_only=False)
     assert len(answered) <= len(every)
     assert all(q["answers"] for q in answered)
+
+
+# --- новая разметка вопросов (webPDPListQuestions, с августа 2026) ---
+
+def test_pdp_questions_parse():
+    """Ozon сменил виджет: список вместо словаря, ответы внутри вопроса, поля-объекты."""
+    qs = parse.parse_questions(_load("questions_pdp.json"))
+    assert len(qs) >= 1
+    q = qs[0]
+    assert set(q) == {"_id", "_has_more", "author", "text", "date", "answers"}
+    assert q["author"] and q["text"] and q["date"]
+    assert q["answers"], "answered_only=True, но ответов нет"
+    a = q["answers"][0]
+    assert set(a) == {"author", "text", "date", "is_best"}
+    assert a["author"] and a["text"]
+    assert a["is_best"] is False        # признака «лучший ответ» в новой разметке нет
+
+
+def test_pdp_answered_only_filters():
+    data = _load("questions_pdp.json")
+    answered = parse.parse_questions(data, answered_only=True)
+    every = parse.parse_questions(data, answered_only=False)
+    assert len(answered) < len(every), "в фикстуре есть вопрос без ответов"
+    assert all(q["answers"] for q in answered)
+
+
+def test_pdp_widget_is_recognized():
+    assert parse.question_widget(_load("questions_pdp.json")) is not None
+
+
+def test_both_question_markups_give_the_same_shape():
+    """Старая и новая разметка должны давать одинаковый набор полей."""
+    old = parse.parse_questions(_load("questions.json"))
+    new = parse.parse_questions(_load("questions_pdp.json"))
+    assert old and new
+    assert set(old[0]) == set(new[0])
+    assert set(old[0]["answers"][0]) == set(new[0]["answers"][0])

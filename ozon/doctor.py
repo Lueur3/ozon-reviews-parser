@@ -14,6 +14,15 @@ def check_health(meta: dict, reviews: list, min_chars: int = config.DOCTOR_MIN_C
     chars = meta.get("characteristics") or {}
     questions = meta.get("questions") or []
     overall = (meta.get("stats") or {}).get("overall") or {}
+    # Разметку вопросов Ozon уже менял: без этого различия «виджет не распознан»
+    # выглядел как «у товара нет вопросов», и поломка проходила незаметно.
+    widget_seen = meta.get("questions_widget_seen", True)
+    if not widget_seen:
+        questions_check = ("вопросы", False, "FAIL",
+                           "виджет вопросов не распознан — вероятно, Ozon сменил разметку")
+    else:
+        questions_check = ("вопросы", len(questions) >= 1, "WARN",
+                           "0 отвеченных вопросов (возможно, их у товара нет)")
     checks = [
         ("id товара", bool(meta.get("product_id")), "FAIL", "id не определён из URL"),
         ("цена", bool(price.get("price") or price.get("card_price")), "FAIL",
@@ -21,8 +30,7 @@ def check_health(meta: dict, reviews: list, min_chars: int = config.DOCTOR_MIN_C
         ("характеристики", len(chars) >= min_chars, "FAIL",
          f"webCharacteristics: получено {len(chars)} (< {min_chars})"),
         ("отзывы", len(reviews) >= 1, "FAIL", "webListReviews: 0 отзывов"),
-        ("вопросы", len(questions) >= 1, "WARN",
-         "webListQuestions: 0 (возможно, у товара нет вопросов)"),
+        questions_check,
         ("статистика", overall.get("total") is not None, "FAIL", "productScore/total не сняты"),
     ]
     return [(name, "PASS", "") if ok else (name, st, detail)
