@@ -13,7 +13,7 @@
 """
 import asyncio
 
-from . import api, config, parse
+from . import api, config, interrupt, parse
 from .errors import BootstrapError, CaptchaTimeout
 from .logging_setup import get_logger
 from .stats import compute_stats
@@ -89,7 +89,14 @@ class ReviewCollector:
 
         self.page.on("response", schedule)
         try:
-            await self.page.goto(self.url, wait_until="domcontentloaded")
+            try:
+                await self.page.goto(self.url, wait_until="domcontentloaded")
+            except Exception as e:
+                # Самая частая причина — включённый VPN: Ozon рвёт соединение
+                # ещё до загрузки страницы (net::ERR_FAILED).
+                raise BootstrapError(
+                    f"страница не открылась: {self.url}. Проверь, что VPN выключен "
+                    f"и есть доступ к сети. Причина: {e.__class__.__name__}") from None
             await self.page.wait_for_timeout(config.PAGE_SETTLE_MS)
             await self._drain()
             self.resolved_url = self.page.url
@@ -225,7 +232,7 @@ class ReviewCollector:
         # с фиксированным номером страницы Ozon возвращает одну и ту же первую десятку.
         param = api.questions_page(self.ppath, 1)
         for page_n in range(1, max_pages + 1):
-            if not param:
+            if not param or interrupt.requested():
                 break
             try:
                 qdata = await self.client.fetch(param)
@@ -268,6 +275,9 @@ class ReviewCollector:
         pages = 0
         empty = 0
         while param and "review" in param.lower() and pages < config.MAX_FETCH_PAGES:
+            if interrupt.requested():
+                log.info("[%s] stop: остановка по запросу пользователя", label)
+                return "interrupted"
             if len(self.reviews_by_uuid) >= self.max_reviews * config.COLLECT_OVERSHOOT:
                 log.info("[%s] stop: лимит набран", label)
                 return "limit"

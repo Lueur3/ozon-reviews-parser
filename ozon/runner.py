@@ -2,7 +2,7 @@
 import asyncio
 import time
 
-from . import config
+from . import config, interrupt
 from .anonymize import anonymize
 from .browser import launch_browser
 from .collector import ReviewCollector
@@ -28,6 +28,9 @@ async def _run_async(urls, period_days, all_variants, headless, max_reviews,
     async with launch_browser(headless=headless, fresh_profile=fresh_profile,
                               profile_dir=profile_dir or config.PROFILE_DIR) as (_context, page):
         for i, url in enumerate(urls):
+            if interrupt.requested():
+                _report("Остановлено пользователем — оставшиеся товары пропущены.")
+                break
             mode = "все варианты" if all_variants else "только этот вариант"
             _report(f"[{i + 1}/{len(urls)}] {url} ({mode}) — собираю отзывы...")
             t0 = time.perf_counter()
@@ -94,6 +97,9 @@ async def _run_async(urls, period_days, all_variants, headless, max_reviews,
 
 def run(urls, period_days, all_variants, headless, max_reviews,
         output_dir=None, profile_dir=None, fresh_profile=False, anonymize_output=False):
-    asyncio.run(_run_async(urls, period_days, all_variants, headless, max_reviews,
-                           output_dir=output_dir, profile_dir=profile_dir,
-                           fresh_profile=fresh_profile, anonymize_output=anonymize_output))
+    # Ctrl+C переводим в просьбу остановиться: браузер успевает закрыться штатно.
+    with interrupt.graceful():
+        return asyncio.run(_run_async(
+            urls, period_days, all_variants, headless, max_reviews,
+            output_dir=output_dir, profile_dir=profile_dir,
+            fresh_profile=fresh_profile, anonymize_output=anonymize_output))

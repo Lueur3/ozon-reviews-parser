@@ -91,3 +91,20 @@ def test_write_failure_does_not_lose_remaining_products():
     saved, calls = _run(_ok, ["u1", "u2"], saver=failing_saver)
     assert saved == ["2"]               # первый не записался, второй — да
     assert calls == 2
+
+
+def test_remaining_products_skipped_after_interrupt(monkeypatch):
+    """Первый Ctrl+C: текущий товар дописывается, остальные не начинаются."""
+    from ozon import interrupt
+
+    calls = {"n": 0}
+
+    def side(n):
+        calls["n"] = n
+        if n == 1:
+            monkeypatch.setattr(interrupt, "_requested", True)   # нажали во время сбора
+        return _ok(n)
+
+    saved, _ = _run(side, ["u1", "u2", "u3"])
+    assert saved == ["1"]          # первый сохранён
+    assert calls["n"] == 1         # второй даже не начали

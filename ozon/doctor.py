@@ -5,7 +5,7 @@
 """
 import asyncio
 
-from . import config
+from . import config, interrupt
 
 
 def check_health(meta: dict, reviews: list, min_chars: int = config.DOCTOR_MIN_CHARS) -> list:
@@ -68,5 +68,6 @@ async def _run_doctor_async(url: str, profile_dir=None, fresh_profile: bool = Fa
 
 def run_doctor(url: str, profile_dir=None, fresh_profile: bool = False) -> int:
     """Живая самопроверка. Возвращает код выхода (0 — ок, 1 — есть FAIL)."""
-    return asyncio.run(_run_doctor_async(url, profile_dir=profile_dir,
-                                        fresh_profile=fresh_profile))
+    with interrupt.graceful():
+        return asyncio.run(_run_doctor_async(url, profile_dir=profile_dir,
+                                             fresh_profile=fresh_profile))
