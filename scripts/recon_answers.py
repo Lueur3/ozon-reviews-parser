@@ -6,7 +6,7 @@ r"""Recon ответов: приходят ли все ответы вместе
     .\.venv\Scripts\python.exe scripts/recon_answers.py "<ссылка>" --pages 5 --clicks 5
 
 Парсер исходит из того, что ответы приходят вложенными в вопрос и отдельно их
-догружать не нужно. Скрипт это допущение проверяет в две фазы:
+догружать не нужно. Скрипт это допущение проверяет в три фазы:
 
 1. Листает ленту вопросов и считает, по сколько ответов приходит на вопрос;
    для самого «богатого» вопроса пробует его личную страницу и сравнивает.
@@ -15,6 +15,9 @@ r"""Recon ответов: приходят ли все ответы вместе
    поэтому найти способ догрузки по сохранённому сырью невозможно — он проявляется
    только при клике. Пойманные догрузки целиком ложатся в captures/qa_ans/expand_requests.json:
    по ним и пишется реализация.
+3. Пробует вызвать догрузку самостоятельно с разными телами запроса, чтобы понять,
+   обязателен ли в нём курсор. Курсор нигде не отдаётся — страница собирает его сама,
+   и одно из полей непрозрачно, так что обойтись без него было бы сильно проще.
 
 Разбор идёт через `parse.parse_questions`, то есть ровно тем же кодом, что и в
 проде: скрипт не может разойтись с парсером и не устаревает отдельно от него.
@@ -23,6 +26,7 @@ r"""Recon ответов: приходят ли все ответы вместе
 """
 import argparse
 import asyncio
+import base64
 import collections
 import json
 
@@ -126,6 +130,63 @@ async def _catch_expand_requests(s, clicks: int = 3):
     return out
 
 
+POST_JS = """async ({u, h, b}) => {
+    const r = await fetch(u, {method: 'POST', headers: h, body: b, credentials: 'include'});
+    return {status: r.status, text: await r.text()};
+}"""
+
+ANSWERS_ACTION = "/api/composer-api.bx/_action/v2/getAnswers"
+
+
+async def _probe_answer_variants(s, question):
+    """Фаза 3: обязателен ли курсор в теле запроса догрузки.
+
+    Курсора нет ни в ленте, ни в ответе догрузки — страница строит его сама из уже
+    показанного ответа, а поле usefulness в нём непрозрачное. Поэтому проверяем, нельзя
+    ли обойтись без курсора: если запрос без него отдаёт ответы с начала, строить его
+    не придётся вовсе.
+    """
+    out = ["--- нужен ли курсор в запросе догрузки ---"]
+    item_id, quuid = question.get("itemId"), question.get("questionUuid")
+    last_uuid = ((question.get("answers") or [{}])[0]).get("answerUuid") or ""
+    if not (item_id and quuid):
+        return out + ["  у вопроса нет itemId/questionUuid — пробовать нечего"]
+    out.append(f"вопрос {quuid}, ответов в ленте: {len(question.get('answers') or [])}")
+
+    def cursor(usefulness, uuid):
+        raw = json.dumps({"last_usefulness": usefulness, "last_uuid": uuid},
+                         separators=(",", ":")).encode()
+        return base64.b64encode(raw).decode()
+
+    variants = {
+        "без поля вовсе": {"itemId": str(item_id), "questionUuid": quuid},
+        "пустая строка": {"itemId": str(item_id), "questionUuid": quuid, "pagingParams": ""},
+        "нули": {"itemId": str(item_id), "questionUuid": quuid,
+                 "pagingParams": cursor(0, "")},
+        "от показанного": {"itemId": str(item_id), "questionUuid": quuid,
+                           "pagingParams": cursor(2 ** 62, last_uuid)},
+    }
+    headers = dict(s.client.headers or {})
+    headers["content-type"] = "application/json"
+    for label, body in variants.items():
+        try:
+            res = await s.page.evaluate(POST_JS, {
+                "u": s.client.origin + ANSWERS_ACTION, "h": headers,
+                "b": json.dumps(body, ensure_ascii=False)})
+            status = res.get("status")
+            answers = None
+            if status == 200:
+                data = json.loads(res["text"]).get("data") or {}
+                answers = data.get("answers")
+            out.append(f"  {label:<16} -> {status}, ответов: "
+                       f"{len(answers) if isinstance(answers, list) else '—'}")
+        except Exception as e:
+            out.append(f"  {label:<16} -> не отработал: {e!r}")
+        await s.page.wait_for_timeout(800)
+    out.append("  Если вариант без курсора отдаёт ответы — курсор строить не нужно.")
+    return out
+
+
 async def recon(url: str, max_pages: int, clicks: int):
     QA.mkdir(parents=True, exist_ok=True)
     report = []
@@ -133,6 +194,7 @@ async def recon(url: str, max_pages: int, clicks: int):
     total = 0
     flagged = 0          # вопросы, у которых парсер сам подозревает недогруз
     spread = collections.Counter()   # сколько вопросов с каким числом ответов
+    raw_question = None   # сырой вопрос для фазы 3: нужны itemId и answerUuid
 
     async with open_session(url) as s:
         report.append(f"headers: {'есть' if s.client.headers else 'НЕТ'}")
@@ -148,6 +210,10 @@ async def recon(url: str, max_pages: int, clicks: int):
             if page_n == 1:
                 _dump("questions_page.json", qdata)
             questions = parse.parse_questions(qdata, answered_only=False)
+            if page_n == 1:
+                w = parse.question_widget(qdata) or {}
+                raw_qs = w.get("questions")
+                raw_question = raw_qs[0] if isinstance(raw_qs, list) and raw_qs else None
             if not questions:
                 report.append(f"страница {page_n}: вопросов не разобрано")
                 break
@@ -200,6 +266,9 @@ async def recon(url: str, max_pages: int, clicks: int):
 
         report.append("")
         report.extend(await _catch_expand_requests(s, clicks))
+        if raw_question:
+            report.append("")
+            report.extend(await _probe_answer_variants(s, raw_question))
 
     (QA / "_index.txt").write_text("\n".join(report), encoding="utf-8")
     print("\n".join(report))
