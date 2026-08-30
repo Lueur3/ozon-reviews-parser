@@ -3,16 +3,18 @@ r"""Recon ответов: приходят ли все ответы вместе
 ВАЖНО: VPN выключен.
 
     .\.venv\Scripts\python.exe scripts/recon_answers.py "<ссылка или артикул>"
-    .\.venv\Scripts\python.exe scripts/recon_answers.py "<ссылка>" --pages 5
+    .\.venv\Scripts\python.exe scripts/recon_answers.py "<ссылка>" --pages 5 --clicks 5
 
 Парсер исходит из того, что ответы приходят вложенными в вопрос и отдельно их
 догружать не нужно. Скрипт это допущение проверяет в две фазы:
 
 1. Листает ленту вопросов и считает, по сколько ответов приходит на вопрос;
    для самого «богатого» вопроса пробует его личную страницу и сравнивает.
-2. Открывает страницу вопросов, жмёт «Ещё N ответов» и записывает, какие запросы
-   при этом уходят в сеть. Числа «ещё N» в ответе ленты нет, поэтому найти способ
-   догрузки по сохранённому сырью невозможно — он проявляется только при клике.
+2. Открывает страницу вопросов, жмёт «Ещё N ответов» и записывает запросы, которые
+   при этом уходят: метод, адрес, тело и заголовки. Числа «ещё N» в ответе ленты нет,
+   поэтому найти способ догрузки по сохранённому сырью невозможно — он проявляется
+   только при клике. Пойманные догрузки целиком ложатся в captures/qa_ans/get_answers.json:
+   по ним и пишется реализация.
 
 Разбор идёт через `parse.parse_questions`, то есть ровно тем же кодом, что и в
 проде: скрипт не может разойтись с парсером и не устаревает отдельно от него.
@@ -45,11 +47,30 @@ async def _catch_expand_requests(s, clicks: int = 3):
     """
     out = ["--- раскрытие «Ещё N ответов» ---"]
     caught = []
+    pending = []
+
+    async def capture(resp):
+        """Снять с ответа всё, что понадобится для реализации: метод, тело, заголовки."""
+        req = resp.request
+        rec = {"status": resp.status, "method": req.method, "url": resp.url}
+        try:
+            rec["post_data"] = req.post_data
+        except Exception as e:
+            rec["post_data"] = f"<не снято: {e.__class__.__name__}>"
+        try:
+            rec["headers"] = await req.all_headers()
+        except Exception:
+            rec["headers"] = {}
+        try:
+            rec["body"] = await resp.json()
+        except Exception:
+            rec["body"] = None
+        caught.append(rec)
 
     def on_response(resp):
         u = resp.url
         if "entrypoint-api" in u or "composer-api" in u:
-            caught.append((resp.status, u))
+            pending.append(asyncio.ensure_future(capture(resp)))
 
     page = s.page
     page.on("response", on_response)
@@ -57,6 +78,8 @@ async def _catch_expand_requests(s, clicks: int = 3):
         await page.goto(s.resolved_url.split("?")[0].rstrip("/") + "/questions/",
                         wait_until="domcontentloaded")
         await page.wait_for_timeout(3000)
+        await asyncio.gather(*pending, return_exceptions=True)
+        pending.clear()
         before = len(caught)
         # Текст кнопки пишут и через «Ещё», и через «Еще»; число и окончание любые.
         expanders = page.locator("text=/Ещ[её]\\s+\\d+\\s+ответ/")
@@ -69,12 +92,33 @@ async def _catch_expand_requests(s, clicks: int = 3):
                 await page.wait_for_timeout(2500)
             except Exception as e:
                 out.append(f"  клик {i + 1} не удался: {e.__class__.__name__}")
+        await asyncio.gather(*pending, return_exceptions=True)
+        pending.clear()
+
         new = caught[before:]
         out.append(f"запросов после кликов: {len(new)}")
-        for status, u in new[:20]:
-            out.append(f"  {status} {u[:200]}")
+        for rec in new[:20]:
+            out.append(f"  {rec['status']} {rec['method']} {rec['url'][:150]}")
+            if rec["post_data"]:
+                out.append(f"       тело: {str(rec['post_data'])[:400]}")
         if not new:
             out.append("  сеть молчит — ответы, вероятно, уже лежали в состоянии страницы")
+
+        # Запросы догрузки складываем целиком: по ним и пишется реализация.
+        answers = [r for r in new if "getanswers" in r["url"].lower()]
+        if answers:
+            _dump("get_answers.json", answers)
+            out.append(f"догрузок ответов поймано: {len(answers)} "
+                       f"-> captures/qa_ans/get_answers.json")
+            first = answers[0]
+            body = first.get("body")
+            if isinstance(body, dict):
+                out.append(f"  ключи ответа: {sorted(body)[:12]}")
+            hdrs = {k: v for k, v in (first.get("headers") or {}).items()
+                    if k.lower().startswith("x-o3") or k.lower() == "content-type"}
+            out.append(f"  заголовки запроса (значимые): {json.dumps(hdrs, ensure_ascii=False)[:200]}")
+        else:
+            out.append("  запросов догрузки не видно — искать в списке выше")
     except Exception as e:
         out.append(f"фаза 2 не отработала: {e!r}")
     finally:
@@ -82,7 +126,7 @@ async def _catch_expand_requests(s, clicks: int = 3):
     return out
 
 
-async def recon(url: str, max_pages: int):
+async def recon(url: str, max_pages: int, clicks: int):
     QA.mkdir(parents=True, exist_ok=True)
     report = []
     best = None          # вопрос с наибольшим числом ответов
@@ -155,7 +199,7 @@ async def recon(url: str, max_pages: int):
                                   "отдельная догрузка не нужна.")
 
         report.append("")
-        report.extend(await _catch_expand_requests(s))
+        report.extend(await _catch_expand_requests(s, clicks))
 
     (QA / "_index.txt").write_text("\n".join(report), encoding="utf-8")
     print("\n".join(report))
@@ -167,5 +211,7 @@ if __name__ == "__main__":
     p.add_argument("url", help="ссылка на товар или артикул")
     p.add_argument("--pages", type=int, default=5,
                    help="сколько страниц ленты просмотреть (по умолчанию 5)")
+    p.add_argument("--clicks", type=int, default=3,
+                   help="сколько кнопок «Ещё N ответов» раскрыть (по умолчанию 3)")
     args = p.parse_args()
-    asyncio.run(recon(args.url, args.pages))
+    asyncio.run(recon(args.url, args.pages, args.clicks))
