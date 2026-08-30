@@ -1,8 +1,8 @@
-"""Запуск браузера для обхода анти-бота Ozon через Patchright.
+"""Запуск браузера: реальный установленный Chrome через Patchright.
 
-Patchright — патченный Playwright: убирает детектируемые следы автоматизации
-на уровне протокола управления (CDP/Runtime.enable), которые playwright-stealth
-не закрывает. По рекомендациям Patchright: реальный Chrome (channel="chrome"),
+Patchright — патченный Playwright: не оставляет следов автоматизации на уровне
+протокола управления (CDP/Runtime.enable), которые не закрывает playwright-stealth.
+Требования к запуску — его же рекомендации: реальный Chrome (channel="chrome"),
 без подмены user-agent и заголовков, без кастомного viewport.
 """
 import contextlib

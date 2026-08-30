@@ -28,6 +28,14 @@ QUESTION_PAGES = 40
 STATS_WINDOWS_DAYS = (30, 90, 180, 365)
 # Ozon отдаёт даты отзывов в московском времени; при другой зоне даты сместятся.
 TIMEZONE = "Europe/Moscow"
+# Порог «развёрнутого» отзыва для среза lenses.substantive. 150 символов: на замере
+# 36 товаров (август 2026) такие отзывы ниже общей средней на 34 товарах из 36
+# (в среднем на 0.34), оставаясь представительными — около 10% выборки.
+LENS_MIN_CHARS = 150
+# Порог «отмеченного полезным» для среза lenses.voted. Единица, а не больше: голоса
+# есть лишь у 4-16% отзывов, медиана среди проголосованных — 1. При пороге 5 в срез
+# попадало 1-8 отзывов на товар, то есть шум.
+LENS_MIN_USEFUL = 1
 
 # Куда разрешено переходить. Без этого списка в браузере пользователя открылось бы
 # что угодно из чужого urls.txt — включая file:// и адреса локальной сети.
@@ -57,6 +65,12 @@ CAPTCHA_WAIT_ITERS = 75
 CAPTCHA_POLL_MS = 4000
 # Этими статусами Ozon отвечает именно при блокировке — тогда нужна капча.
 BLOCK_STATUSES = (403, 429)
+# Но и блокировка бывает разовой: под нагрузкой прилетает 403, а через пару секунд
+# всё отвечает снова, без всякой капчи. Столько раз пробуем молча, прежде чем
+# объявлять капчу: на живом прогоне доступ возвращался сам за ~4 с, а сообщение
+# «реши капчу» к тому моменту уже было напечатано и решать было нечего.
+BLOCK_RETRIES = 3
+BLOCK_RETRY_MS = 2000
 # Всё остальное (5xx, обрыв сети, таймаут) — разовый сбой: молча повторяем.
 # Без этого одна сетевая икота печатала «реши капчу» и дёргала страницу.
 TRANSIENT_RETRIES = 3
@@ -101,7 +115,8 @@ def _validate() -> None:
             raise ValueError(f"config.{name}: ожидалось 0 <= min <= max, получено {(lo, hi)}")
     positive = ("REVIEW_PERIOD_DAYS", "MAX_REVIEWS_PER_PRODUCT", "COLLECT_OVERSHOOT",
                 "QUESTION_PAGES", "HEADER_SCROLLS", "MAX_FETCH_PAGES", "EMPTY_PAGES_LIMIT",
-                "CAPTCHA_WAIT_ITERS", "CAPTCHA_POLL_MS", "NAV_TIMEOUT_MS")
+                "CAPTCHA_WAIT_ITERS", "CAPTCHA_POLL_MS", "NAV_TIMEOUT_MS",
+                "LENS_MIN_CHARS", "LENS_MIN_USEFUL", "BLOCK_RETRIES", "BLOCK_RETRY_MS")
     for name in positive:
         if globals()[name] <= 0:
             raise ValueError(f"config.{name}: ожидалось положительное число, получено {globals()[name]}")

@@ -5,7 +5,7 @@ r"""Recon пагинации вопросов-ответов (Q&A).
     .\.venv\Scripts\python.exe scripts/recon_qa.py "<ссылка на товар>"
 
 Открывает /questions/?qsort=has_answers_desc, листает вниз и ловит запросы
-подгрузки вопросов. Сохраняет captures/qa/*.json (ответы с webListQuestions)
+подгрузки вопросов. Сохраняет captures/qa/*.json (ответы с виджетом вопросов)
 и captures/qa/_index.txt: статус, число вопросов, есть ли nextPage, URL.
 По индексу поймём, как именно листается лента вопросов.
 """
@@ -24,11 +24,13 @@ QA = CAPTURES / "qa"
 
 
 def qcount(data):
-    for k, w in parse.widget_states(data).items():   # тот же разбор, что и в проде
-        if k.startswith("webListQuestions"):
-            qs = w.get("questions")
-            return len(qs) if isinstance(qs, (list, dict)) else 0
-    return None
+    """Сколько вопросов в ответе. Виджет ищем тем же кодом, что и в проде, —
+    иначе скрипт устаревает при первом же изменении на стороне сайта."""
+    w = parse.question_widget(data)
+    if w is None:
+        return None
+    qs = w.get("questions")
+    return len(qs) if isinstance(qs, (list, dict)) else 0
 
 
 async def main(url):
@@ -41,8 +43,7 @@ async def main(url):
     async def on_resp(resp):
         try:
             u = resp.url
-            if "webListQuestions" not in u and "question" not in u.lower() \
-                    and "getanswer" not in u.lower():
+            if "question" not in u.lower() and "getanswer" not in u.lower():
                 return
             if "json" not in resp.headers.get("content-type", ""):
                 return

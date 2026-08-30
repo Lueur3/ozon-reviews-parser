@@ -69,7 +69,7 @@ async def recon(url: str):
             w = parse.question_widget(data)
             if not w:
                 print(f"[{label}] виджет вопросов НЕ найден")
-                report.append(f"### {label}: webListQuestions не найден")
+                report.append(f"### {label}: виджет вопросов не найден")
                 continue
             qs = w.get("questions") or {}
             qa = w.get("questionAnswers") or {}

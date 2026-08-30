@@ -33,8 +33,9 @@ WIDGET_PRICE = "webPrice-"                   # дефис обязателен: 
                                              # декоративный webPriceDecreasedCompact
 WIDGET_CHARACTERISTICS = "webCharacteristics"
 WIDGET_SHORT_CHARACTERISTICS = "webShortCharacteristics"
-WIDGET_QUESTIONS = "webListQuestions"        # прежняя разметка Q&A
-WIDGET_QUESTIONS_PDP = "webPDPListQuestions"  # с августа 2026 Ozon отдаёт эту
+# Q&A приходит в двух видах, встречаются оба — проверяем на совпадение с каждым.
+WIDGET_QUESTIONS = "webListQuestions"
+WIDGET_QUESTIONS_PDP = "webPDPListQuestions"
 WIDGET_PAGINATOR = "paginator"               # курсор следующей страницы вопросов
 
 # Заголовки, которые браузер выставит сам: свои значения ломают fetch.
@@ -104,12 +105,14 @@ class OzonClient:
         """GET JSON по внутреннему пути.
 
         Разовый сбой (5xx, обрыв, таймаут) повторяем молча — раньше любая сетевая
-        икота печатала «реши капчу» и перезагружала страницу. Про капчу говорим
-        только при статусе блокировки или когда сбои не прекращаются.
+        икота печатала «реши капчу» и перезагружала страницу. Разовой бывает и
+        блокировка, поэтому её тоже сначала пробуем пережить молча. Про капчу
+        говорим, только когда отказы не прекращаются.
         """
         url = self.origin + API_PATH + quote(param, safe="")
         announced = False
         transient = 0
+        blocks = 0
         reason = "неизвестно"
         for _ in range(self.captcha_iters):
             blocked = False
@@ -130,6 +133,15 @@ class OzonClient:
                 transient += 1
                 log.debug("fetch %s: разовый сбой (%s), попытка %d", param, reason, transient)
                 await self.page.wait_for_timeout(config.TRANSIENT_RETRY_MS)
+                continue
+
+            # Блокировка тоже бывает разовой. Ждём молча и БЕЗ перезагрузки страницы:
+            # объявление капчи открывает окно заново и уводит его наверх, а если 403
+            # был случайным, то решать нечего и дёргать пользователя не за чем.
+            if blocked and not announced and blocks < config.BLOCK_RETRIES:
+                blocks += 1
+                log.debug("fetch %s: блокировка (%s), тихая попытка %d", param, reason, blocks)
+                await self.page.wait_for_timeout(config.BLOCK_RETRY_MS)
                 continue
 
             if not announced:

@@ -7,7 +7,14 @@ from ozon.collector import ReviewCollector, _is_empty
 from ozon.models import Review
 
 CUTOFF = 1_000_000_000  # ~2001-09; ниже — «старые»
-PRODUCTS = {"1": {"variants": []}, "2": {"variants": []}}
+# Каталог вариантов в форме Ozon. 1 и 3 — РАЗНЫЕ листинги одного и того же цвета
+# (так у Ozon и бывает), 9 — товар без вариантов вообще.
+PRODUCTS = {
+    "1": {"variants": [{"name": "Цвет товара", "value": "чёрный"}]},
+    "2": {"variants": [{"name": "Цвет товара", "value": "белый"}]},
+    "3": {"variants": [{"name": "Цвет товара", "value": "чёрный"}]},
+    "9": {"variants": []},
+}
 
 
 def _raw(uuid, ts, item_id=1, text="хороший товар"):
@@ -22,12 +29,12 @@ def _raw(uuid, ts, item_id=1, text="хороший товар"):
     }
 
 
-def _collector(reviews_by_uuid, *, all_variants=True, pid_int=None, max_reviews=500):
+def _collector(reviews_by_uuid, *, all_variants=True, product_id=None, max_reviews=500):
     c = ReviewCollector(page=None, url="", period_days=1, all_variants=all_variants,
                         max_reviews=max_reviews, page_delay=(0, 0))
     c.reviews_by_uuid = reviews_by_uuid
     c.products = PRODUCTS
-    c.pid_int = pid_int
+    c.product_id = product_id
     c.cutoff = CUTOFF  # фиксируем, не зависим от текущей даты
     return c
 
@@ -45,13 +52,36 @@ def test_skips_empty_reviews():
     assert skipped == 1
 
 
-def test_variant_filter_keeps_only_target_item():
+def test_variant_filter_keeps_the_variant_under_every_listing_id():
+    """Целевой вариант задан описанием: тот же цвет под другим id должен пройти.
+
+    Сравнение по itemId отбрасывало всё — на живом товаре 368 отзывов из 990
+    описывали нужный вариант, и ни один не совпал по id листинга.
+    """
+    raws = {"a": _raw("a", 1_781_631_970, item_id=1),
+            "b": _raw("b", 1_781_631_970, item_id=2),
+            "c": _raw("c", 1_781_631_970, item_id=3)}   # тот же цвет, другой листинг
+    out, _ = _collector(raws, all_variants=False, product_id="1")._filtered()
+    assert len(out) == 2
+    out_all, _ = _collector(raws, all_variants=True, product_id="1")._filtered()
+    assert len(out_all) == 3  # all_variants=True игнорирует фильтр варианта
+
+
+def test_variant_filter_keeps_everything_when_there_are_no_variants():
+    """У товара без вариантов фильтровать не по чему — иначе файл выходит пустым."""
     raws = {"a": _raw("a", 1_781_631_970, item_id=1),
             "b": _raw("b", 1_781_631_970, item_id=2)}
-    out, _ = _collector(raws, all_variants=False, pid_int=1)._filtered()
-    assert len(out) == 1
-    out_all, _ = _collector(raws, all_variants=True, pid_int=1)._filtered()
-    assert len(out_all) == 2  # all_variants=True игнорирует фильтр варианта
+    out, _ = _collector(raws, all_variants=False, product_id="9")._filtered()
+    assert len(out) == 2
+
+
+def test_unknown_target_variant_warns_instead_of_filtering_silently():
+    """Нет товара в каталоге — молча вернуть все варианты под --this-variant нельзя."""
+    raws = {"a": _raw("a", 1_781_631_970, item_id=1)}
+    c = _collector(raws, all_variants=False, product_id="404")
+    out, _ = c._filtered()
+    assert len(out) == 1                      # фильтр не применён
+    assert c._target_variant() == {}
 
 
 def test_sorted_newest_first():

@@ -1,11 +1,10 @@
 """Сбор отзывов/Q&A/карточки одного товара через сессию браузера (Ozon).
 
-Заголовки внутреннего API берём из живой сессии браузера (он прошёл анти-бот),
-дальше пагинацию ленты отзывов гоняем через fetch в контексте страницы.
+Заголовки внутреннего API берём из живой сессии браузера, дальше пагинацию
+ленты отзывов гоняем через fetch в контексте страницы.
 
-Анонимному пользователю Ozon отдаёт ограниченный объём ленты («Войдите,
-чтобы посмотреть больше»). Если хронологическая лента упирается в эту стену
-раньше, чем покрывает заданный период, добираем отзывы сортировками по оценке
+Без аккаунта доступна лишь часть ленты. Если хронологический проход заканчивается
+раньше, чем покрывает заданный период, добираем отзывы проходами по оценке
 (низкая/высокая) — так в окно попадает больше негатива и позитива.
 
 Состояние сбора живёт в атрибутах ReviewCollector (один экземпляр = один товар),
@@ -52,7 +51,6 @@ class ReviewCollector:
         # реквизиты товара (заполняются в _bootstrap по resolved_url)
         self.resolved_url = ""
         self.product_id = None
-        self.pid_int = None
         self.origin = ""
         self.rpath = ""    # путь ленты отзывов /product/.../reviews/
         self.ppath = ""    # путь карточки /product/.../
@@ -101,6 +99,15 @@ class ReviewCollector:
             await self._drain()
             self.resolved_url = self.page.url
             self.product_id = extract_product_id(self.resolved_url)
+            # Несуществующий артикул Ozon уводит на /search/?product_id=... — карточки там
+            # нет, и все дальнейшие запросы уходят по несуществующим путям, получают 403 и
+            # выглядят как капча. Раньше это стоило пяти минут ожидания капчи, которой нет,
+            # и только потом сообщения об id. Останавливаемся сразу, до первого запроса.
+            if not self.product_id:
+                raise BootstrapError(
+                    "карточка товара не открылась — обычно товар снят с продажи либо "
+                    "артикула не существует; Ozon в обоих случаях уводит на поиск. "
+                    f"Итоговый URL: {self.resolved_url}")
             for _ in range(config.HEADER_SCROLLS):
                 if self.headers and self.shelf_next:
                     break
@@ -114,10 +121,6 @@ class ReviewCollector:
         self.origin = api.origin_of(self.resolved_url)
         self.ppath = api.product_path(self.resolved_url)
         self.rpath = api.reviews_path(self.resolved_url)
-        try:
-            self.pid_int = int(self.product_id)
-        except (TypeError, ValueError):
-            self.pid_int = None
 
         log.info("bootstrap: id=%s headers=%s shelf_next=%s reviews=%d",
                  self.product_id, bool(self.headers), bool(self.shelf_next), len(self.reviews_by_uuid))
@@ -299,7 +302,7 @@ class ReviewCollector:
                 return "cutoff"
             empty = empty + 1 if added == 0 else 0
             if empty >= config.EMPTY_PAGES_LIMIT:
-                log.info("[%s] stop: %d страниц без новых (стена анонима/конец)", label, config.EMPTY_PAGES_LIMIT)
+                log.info("[%s] stop: %d страниц без новых — лента закончилась", label, config.EMPTY_PAGES_LIMIT)
                 return "end"
             param = data.get("nextPage")
             await self.page.wait_for_timeout(config.delay_ms(config.FETCH_DELAY))
@@ -327,15 +330,34 @@ class ReviewCollector:
     # ------------------------------------------------------------------ #
     # Результат
     # ------------------------------------------------------------------ #
+    def _target_variant(self) -> dict:
+        """Описание варианта из ссылки. Пустое — фильтровать не по чему, проходят все.
+
+        Пусто по двум разным причинам: у товара вообще нет вариантов (это норма) либо
+        каталог не содержит нужный id (это не норма — под флагом --this-variant молча
+        вернулись бы все варианты, поэтому предупреждаем).
+        """
+        target = parse.variant_map(self.product_id, self.products)
+        if not target and str(self.product_id) not in self.products:
+            log.warning("вариант товара %s не определён (нет в каталоге products) — "
+                        "фильтр по варианту не применён", self.product_id)
+        return target
+
     def _filtered(self):
         """(list[Review], skipped_empty): период, вариант, пустые, сортировка «сначала новые», лимит."""
         out = []
         skipped_empty = 0
+        # Целевой вариант задаётся ОПИСАНИЕМ (цвет, объём, размер), а не itemId: один и тот
+        # же вариант живёт у Ozon под несколькими id — это разные листинги одного товара.
+        # Сравнение по id отбрасывало все отзывы: на проверенном товаре 368 из 990 описывают
+        # нужный вариант, и ни один не совпал по id. Пустой target (у товара нет вариантов)
+        # означает «фильтровать не по чему» — тогда проходят все.
+        target = None if self.all_variants else self._target_variant()
         for raw in self.reviews_by_uuid.values():
             ts = raw.get("publishedAt") or raw.get("createdAt") or 0
             if ts < self.cutoff:
                 continue
-            if not self.all_variants and self.pid_int is not None and raw.get("itemId") != self.pid_int:
+            if target and parse.variant_map(raw.get("itemId"), self.products) != target:
                 continue
             rev = parse.to_review(raw, self.products)
             if _is_empty(rev):
@@ -348,7 +370,8 @@ class ReviewCollector:
     def _stats(self) -> dict:
         """Статистика по непредвзятой хронологической выборке (без доборов по оценке; overall — из Ozon)."""
         chrono = [self.reviews_by_uuid[u] for u in self._chrono_uuids]
-        return compute_stats(chrono, self.score, self.total, parse.now_local())
+        return compute_stats(chrono, self.score, self.total, parse.now_local(),
+                             pid=self.product_id, products=self.products)
 
     def _meta(self, price: dict, characteristics: dict, questions: list, stats: dict) -> dict:
         """Сводка meta для runner."""

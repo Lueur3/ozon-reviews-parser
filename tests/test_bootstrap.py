@@ -57,7 +57,23 @@ def test_bootstrap_sets_paths_when_headers_captured():
     c.headers = {"x-o3-app-name": "dweb_client"}   # как будто перехватили из сессии
     asyncio.run(c._bootstrap())
     assert c.product_id == "1234567890"
-    assert c.pid_int == 1234567890
     assert c.origin == "https://www.ozon.ru"
     assert c.ppath == "/product/tovar-1234567890/"
     assert c.rpath == "/product/tovar-1234567890/reviews/"
+
+
+def test_bootstrap_stops_when_the_page_is_not_a_product_card():
+    """Снятый с продажи товар и несуществующий артикул одинаково уводят на /search/.
+
+    Раньше сбор шёл дальше по несуществующим путям, получал 403 и пять минут ждал
+    капчу, которой нет. Теперь падает до создания клиента, то есть до первого запроса.
+    """
+    search = ("https://www.ozon.ru/search/?deny_category_prediction=true"
+              "&from_global=true&text=&product_id=175082")
+    c = _collector(FakePage(url=search))
+    c.headers = {"x-o3-app-name": "dweb_client"}   # заголовки есть, но карточки нет
+    with pytest.raises(BootstrapError) as e:
+        asyncio.run(c._bootstrap())
+    assert "карточка товара не открылась" in str(e.value)
+    assert search in str(e.value)
+    assert c.client is None, "клиент создан — значит запросы всё-таки полетят"

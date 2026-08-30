@@ -1,4 +1,4 @@
-r"""Аудит глубины: сколько отзывов реально отдаёт fetch-курсор (есть ли «стена анонима»).
+r"""Аудит глубины: сколько отзывов на товаре реально удаётся собрать.
 
 ВАЖНО: запускать с ВЫКЛЮЧЕННЫМ VPN.
 
@@ -117,11 +117,12 @@ async def audit(url: str, sorts: list[str]):
         f"общий диапазон дат: {f'{dates[0]} .. {dates[-1]}' if dates else '—'}",
     ]
     if claimed["total"]:
+        share = 100 * len(seen) / claimed["total"]
         if len(seen) >= claimed["total"] * 0.95:
-            summary.append("ВЫВОД: fetch достал практически ВСЁ — стены для fetch фактически нет.")
+            summary.append(f"ВЫВОД: собрано практически всё ({share:.0f}% заявленного).")
         else:
-            summary.append(f"ВЫВОД: fetch достал {len(seen)} из ~{claimed['total']} — дальше упор "
-                           f"(стоп см. по сортировкам). Это и есть предел для анонима.")
+            summary.append(f"ВЫВОД: собрано {len(seen)} из ~{claimed['total']} ({share:.0f}%) — "
+                           f"дальше сбор не идёт, причина по каждой сортировке выше.")
 
     CAPTURES.mkdir(exist_ok=True)
     (CAPTURES / "audit_summary.txt").write_text("\n".join(summary), encoding="utf-8")

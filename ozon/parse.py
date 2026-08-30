@@ -213,10 +213,9 @@ def _questions_legacy(w: dict, answered_only: bool) -> list:
 def parse_questions(data: dict, answered_only: bool = True) -> list:
     """Вопросы с ответами: [{author, text, date, answers:[{author,text,date,is_best}]}].
 
-    Ozon держит две разметки Q&A: прежнюю (`webListQuestions`, словари и карта
-    `questionAnswers`) и новую (`webPDPListQuestions`, список вопросов с вложенными
-    ответами и полями-объектами). Различаем по форме `questions`, чтобы сбор
-    работал на обеих.
+    Q&A приходит в двух формах: `questions` словарём с отдельной картой
+    `questionAnswers`, либо списком вопросов со вложенными ответами и полями-объектами.
+    Встречаются обе, поэтому различаем по типу `questions` и поддерживаем каждую.
     """
     w = question_widget(data)
     if not w:

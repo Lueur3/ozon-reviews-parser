@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 
 from ozon import parse
+from ozon.stats import compute_stats
 
 FIX = Path(__file__).parent / "fixtures"
 
@@ -54,6 +55,26 @@ def test_variant_is_resolved_from_products():
     assert all(k and v for k, v in rev.variant.items())
 
 
+def test_lenses_read_the_real_field_paths():
+    """Срезы берут usefulness/photos/itemId прямо из сырого ответа — пути должны совпадать.
+
+    Проверяем наличие самих полей, а не «count больше нуля»: у отзыва может честно
+    не быть голосов, и тогда неверный путь тоже дал бы ноль и остался незамеченным.
+    """
+    reviews, products, score, total = parse.extract_reviews_widget(_load("reviews_page.json"))
+    raw = reviews[0]
+    assert "useful" in (raw.get("usefulness") or {}), "usefulness.useful пропал из ответа"
+    assert "photos" in (raw.get("content") or {}), "content.photos пропал из ответа"
+    assert isinstance(raw.get("itemId"), int), "itemId пропал — срез варианта не соберётся"
+
+    lenses = compute_stats(reviews, score, total, parse.now_local(),
+                           pid=raw["itemId"], products=products)["lenses"]
+    assert set(lenses) >= {"_note", "substantive", "voted", "with_media", "this_variant"}
+    assert lenses["this_variant"]["count"] >= 1, "отзыв целевого варианта не попал в срез"
+    assert all(isinstance(lenses[k]["count"], int)
+               for k in ("substantive", "voted", "with_media"))
+
+
 def test_characteristics_picks_widest_widget():
     chars = parse.parse_characteristics(_load("features.json"))
     assert len(chars) >= 30, "выбран короткий виджет вместо полного"
@@ -83,10 +104,10 @@ def test_answered_only_filter_is_effective():
     assert all(q["answers"] for q in answered)
 
 
-# --- новая разметка вопросов (webPDPListQuestions, с августа 2026) ---
+# --- вторая форма разметки вопросов ---
 
 def test_pdp_questions_parse():
-    """Ozon сменил виджет: список вместо словаря, ответы внутри вопроса, поля-объекты."""
+    """Список вопросов вместо словаря, ответы вложены в вопрос, поля — объекты."""
     qs = parse.parse_questions(_load("questions_pdp.json"))
     assert len(qs) >= 1
     q = qs[0]
@@ -96,7 +117,7 @@ def test_pdp_questions_parse():
     a = q["answers"][0]
     assert set(a) == {"author", "text", "date", "is_best"}
     assert a["author"] and a["text"]
-    assert a["is_best"] is False        # признака «лучший ответ» в новой разметке нет
+    assert a["is_best"] is False        # признака «лучший ответ» в этой форме нет
 
 
 def test_pdp_answered_only_filters():
@@ -112,7 +133,7 @@ def test_pdp_widget_is_recognized():
 
 
 def test_both_question_markups_give_the_same_shape():
-    """Старая и новая разметка должны давать одинаковый набор полей."""
+    """Обе формы обязаны давать одинаковый набор полей — иначе выгрузка «дрожит»."""
     old = parse.parse_questions(_load("questions.json"))
     new = parse.parse_questions(_load("questions_pdp.json"))
     assert old and new

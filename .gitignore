@@ -8,6 +8,10 @@ logs/
 *.log
 .pytest_cache/
 
+# рабочие заметки и правила проекта — только локально
+docs/
+urls*.txt
+
 # сборка пакета
 *.egg-info/
 build/

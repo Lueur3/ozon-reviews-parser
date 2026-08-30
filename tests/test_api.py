@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from ozon import api
+from ozon import api, config
 from ozon.errors import CaptchaTimeout
 
 URL = "https://www.ozon.ru/product/tovar-1234567890/?from=share"
@@ -71,10 +71,10 @@ def test_fetch_returns_parsed_json():
 
 
 def test_fetch_retries_after_block_then_succeeds():
-    page = FakePage([
-        {"status": 403, "text": "<html>captcha</html>"},        # блок
-        {"status": 200, "text": json.dumps({"ok": True})},      # пользователь решил капчу
-    ])
+    page = FakePage(
+        [{"status": 403, "text": "<html>captcha</html>"}] * (config.BLOCK_RETRIES + 1)
+        + [{"status": 200, "text": json.dumps({"ok": True})}],   # пользователь решил капчу
+    )
     data = asyncio.run(_client(page).fetch("/product/x-1/"))
     assert data == {"ok": True}
     assert page.gotos == 1     # окно с капчей было открыто один раз
@@ -122,15 +122,32 @@ def test_network_error_retries_silently(capsys):
     assert "Капча" not in capsys.readouterr().out
 
 
-def test_block_status_announces_captcha_at_once(capsys):
-    """403 — это уже блокировка, тянуть с сообщением незачем."""
+def test_single_block_retries_silently(capsys):
+    """Разовый 403 — не капча. Раньше он печатал «реши капчу», хотя решать нечего.
+
+    На живом прогоне доступ после такого 403 возвращался сам примерно за четыре
+    секунды, но сообщение уже было напечатано, а страница — перезагружена.
+    """
     page = _Recording([
-        {"status": 403, "text": "<html>captcha</html>"},
+        {"status": 403, "text": "<html>blocked</html>"},
         {"status": 200, "text": json.dumps({"ok": True})},
     ])
     assert asyncio.run(_client(page).fetch("/product/x-1/")) == {"ok": True}
+    assert page.gotos == 0                       # страницу не дёргали
+    assert "Капча" not in capsys.readouterr().out
+    assert page.waits == [config.BLOCK_RETRY_MS]  # ждали по-блокировочному, а не поллингом
+
+
+def test_block_announces_captcha_once_the_retries_run_out(capsys):
+    """Настоящая блокировка не проходит сама — после запаса повторов сообщаем."""
+    page = _Recording(
+        [{"status": 403, "text": "<html>captcha</html>"}] * (config.BLOCK_RETRIES + 1)
+        + [{"status": 200, "text": json.dumps({"ok": True})}],
+    )
+    assert asyncio.run(_client(page).fetch("/product/x-1/")) == {"ok": True}
     assert page.gotos == 1                       # окно для капчи открыли
     assert "Капча" in capsys.readouterr().out
+    assert page.waits.count(config.BLOCK_RETRY_MS) == config.BLOCK_RETRIES
 
 
 def test_persistent_transient_failures_eventually_announce(capsys):
