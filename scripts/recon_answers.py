@@ -13,7 +13,7 @@ r"""Recon ответов: приходят ли все ответы вместе
 2. Открывает страницу вопросов, жмёт «Ещё N ответов» и записывает запросы, которые
    при этом уходят: метод, адрес, тело и заголовки. Числа «ещё N» в ответе ленты нет,
    поэтому найти способ догрузки по сохранённому сырью невозможно — он проявляется
-   только при клике. Пойманные догрузки целиком ложатся в captures/qa_ans/get_answers.json:
+   только при клике. Пойманные догрузки целиком ложатся в captures/qa_ans/expand_requests.json:
    по ним и пишется реализация.
 
 Разбор идёт через `parse.parse_questions`, то есть ровно тем же кодом, что и в
@@ -107,9 +107,9 @@ async def _catch_expand_requests(s, clicks: int = 3):
         # Запросы догрузки складываем целиком: по ним и пишется реализация.
         answers = [r for r in new if "getanswers" in r["url"].lower()]
         if answers:
-            _dump("get_answers.json", answers)
+            _dump("expand_requests.json", answers)
             out.append(f"догрузок ответов поймано: {len(answers)} "
-                       f"-> captures/qa_ans/get_answers.json")
+                       f"-> captures/qa_ans/expand_requests.json")
             first = answers[0]
             body = first.get("body")
             if isinstance(body, dict):
